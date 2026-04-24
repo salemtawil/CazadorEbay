@@ -1,0 +1,2 @@
+en supabase
+Database password: compinche123.
