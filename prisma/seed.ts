@@ -8,6 +8,7 @@ import { planOffer } from "../lib/modules/offers";
 import { listingMatchesProfile } from "../lib/modules/search-profiles";
 import { scoreListing } from "../lib/modules/scoring";
 import { decideVisibility } from "../lib/modules/visibility";
+import { Prisma } from "@prisma/client";
 
 const prisma = new PrismaClient();
 
@@ -240,11 +241,11 @@ async function main() {
           recommendedOffer: offer.recommendedOffer,
           walkAwayPrice: offer.walkAwayPrice,
           evaluationJson: {
-            classification,
-            visibility,
-            decision,
-            offer,
-          },
+			  classification: JSON.parse(JSON.stringify(classification)),
+			  visibility: JSON.parse(JSON.stringify(visibility)),
+			  decision: JSON.parse(JSON.stringify(decision)),
+			  offer: JSON.parse(JSON.stringify(offer)),
+			} as Prisma.InputJsonValue,
         },
       });
     }
