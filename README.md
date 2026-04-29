@@ -221,6 +221,33 @@ curl -X POST https://TU_DOMINIO/api/ingest/run -H "Authorization: Bearer TU_SECR
 - `ListingRaw`: URL, precio, shipping, feedback del seller, `fetchedAt`, `rawJson` y metadatos base del listing.
 - `ListingNormalized`: brand, model, señales mínimas de completeness/defect y confidence.
 - `ListingEvaluation`: estado del listing, visibilidad, decisión, scores, drivers, oferta recomendada y `evaluationJson` completo para hidratar la UI desde DB.
+- `Alert`: alertas internas persistidas con `alertType`, severidad, mensaje, metadata y estado de lectura/dismiss.
+
+## Alertas internas
+
+- Pantalla: `/alerts`
+- API:
+  - `GET /api/alerts`
+  - `POST /api/alerts/:alertId/read`
+  - `POST /api/alerts/:alertId/dismiss`
+- Tipos soportados:
+  - `NEW_HIGH_SCORE_OPPORTUNITY`
+  - `PRICE_DROPPED`
+  - `DECISION_UPGRADED_TO_BUY_NOW`
+  - `DECISION_UPGRADED_TO_MAKE_OFFER`
+  - `NEW_LISTING_MATCHED_PROFILE`
+
+### Aplicar el cambio de schema
+
+Se incluye la migración SQL en `prisma/migrations/20260429_add_internal_alerts/migration.sql`.
+
+Si tu base ya está creada y quieres aplicarla localmente:
+
+```bash
+npm run prisma:migrate:deploy
+```
+
+`prisma migrate dev --create-only` no pudo ejecutarse contra el pooler actual de Supabase por permisos del shadow DB, por eso la migración quedó dejada manualmente en el repo.
 
 ## Ingestión inicial desde eBay
 

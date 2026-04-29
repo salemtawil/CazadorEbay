@@ -1,6 +1,7 @@
 import type {
   Classification,
   EvaluationResult,
+  InternalAlert,
   Listing,
   ListingNormalized,
   MarketSnapshot,
@@ -10,6 +11,7 @@ import { buildAlerts } from "@/lib/modules/alerts";
 import { classifyListing } from "@/lib/modules/classification";
 import { evaluateListingForProfile } from "@/lib/modules/evaluation";
 import { normalizeListing } from "@/lib/modules/listings";
+import { generateInternalAlerts, type AlertEvaluationSnapshot } from "@/lib/server/internal-alerts";
 import type { ListingProvider } from "@/lib/server/listing-providers/contracts";
 import { EbayBrowseListingProvider } from "@/lib/server/listing-providers/ebay";
 
@@ -30,10 +32,13 @@ export interface IngestionRunSummary {
 export interface PersistedListingRecord {
   listing: Listing;
   created: boolean;
+  previousListing: Listing | null;
 }
 
 export interface PersistedEvaluationRecord {
+  id: string;
   created: boolean;
+  previousEvaluation: AlertEvaluationSnapshot | null;
 }
 
 export interface PersistedIngestionStore {
@@ -49,6 +54,9 @@ export interface PersistedIngestionStore {
     evaluation: EvaluationResult,
     alerts: ReturnType<typeof buildAlerts>,
   ): Promise<PersistedEvaluationRecord>;
+  createInternalAlerts(
+    alerts: Omit<InternalAlert, "id" | "createdAt" | "readAt" | "dismissedAt" | "listingTitle" | "profileName">[],
+  ): Promise<number>;
 }
 
 interface ProfileSearchResult {
@@ -97,10 +105,14 @@ export class PersistedIngestionService {
     const profileResults = await this.loadProfileResults(profiles, summary);
     const listingsByKey = this.aggregateListings(profileResults);
     const persistedListings = new Map<string, Listing>();
+    const previousListings = new Map<string, Listing | null>();
+    const persistedListingsCreated = new Map<string, boolean>();
 
     for (const [key, aggregate] of listingsByKey) {
       const persisted = await this.store.upsertListingRaw(aggregate.listing);
       persistedListings.set(key, persisted.listing);
+      previousListings.set(key, persisted.previousListing);
+      persistedListingsCreated.set(key, persisted.created);
 
       if (persisted.created) {
         summary.listingsNew += 1;
@@ -148,6 +160,39 @@ export class PersistedIngestionService {
             evaluation.decision,
           );
           const persistedEvaluation = await this.store.upsertListingEvaluation(evaluation, alerts);
+          const generatedAlerts = generateInternalAlerts({
+            listingCreated: persistedListingsCreated.get(listingKey(listing)) ?? false,
+            previousListing: previousListings.get(listingKey(listing)) ?? null,
+            currentListing: persistedListing,
+            previousEvaluation: persistedEvaluation.previousEvaluation,
+            currentEvaluation: evaluation,
+          });
+
+          if (generatedAlerts.length > 0) {
+            const createdAlerts = await this.store.createInternalAlerts(
+              generatedAlerts.map((alert) => ({
+                listingRawId: alert.listingRawId,
+                searchProfileId: alert.searchProfileId,
+                listingEvaluationId: persistedEvaluation.id,
+                alertType: alert.alertType,
+                severity: alert.severity,
+                title: alert.title,
+                message: alert.message,
+                metadata: {
+                  ...alert.metadata,
+                  dedupeKey: alert.dedupeKey,
+                },
+              })),
+            );
+
+            if (createdAlerts > 0) {
+              console.info("[ingest] Internal alerts created.", {
+                listingRawId: evaluation.listingRaw.id,
+                searchProfileId: evaluation.profile.id,
+                count: createdAlerts,
+              });
+            }
+          }
 
           if (persistedEvaluation.created) {
             summary.evaluationsCreated += 1;

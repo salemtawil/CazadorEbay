@@ -107,6 +107,20 @@ enum OfferStrategy {
   CONSERVATIVE
 }
 
+enum AlertType {
+  NEW_HIGH_SCORE_OPPORTUNITY
+  PRICE_DROPPED
+  DECISION_UPGRADED_TO_BUY_NOW
+  DECISION_UPGRADED_TO_MAKE_OFFER
+  NEW_LISTING_MATCHED_PROFILE
+}
+
+enum AlertSeverity {
+  INFO
+  WARNING
+  CRITICAL
+}
+
 model User {
   id         String          @id @default(cuid())
   email      String          @unique
@@ -139,6 +153,7 @@ model SearchProfile {
   updatedAt               DateTime             @updatedAt
   user                    User                 @relation(fields: [userId], references: [id], onDelete: Cascade)
   evaluations             ListingEvaluation[]
+  alerts                  Alert[]
 
   @@index([userId, status])
   @@unique([userId, name])
@@ -165,6 +180,7 @@ model ListingRaw {
   rawJson                Json
   normalized             ListingNormalized?
   evaluations            ListingEvaluation[]
+  alerts                 Alert[]
 
   @@unique([source, externalItemId])
   @@index([source, fetchedAt])
@@ -240,9 +256,34 @@ model ListingEvaluation {
   listingRaw                ListingRaw           @relation(fields: [listingRawId], references: [id], onDelete: Cascade)
   searchProfile             SearchProfile        @relation(fields: [searchProfileId], references: [id], onDelete: Cascade)
   marketSnapshot            MarketSnapshot?      @relation(fields: [marketSnapshotId], references: [id], onDelete: SetNull)
+  alerts                    Alert[]
 
   @@unique([listingRawId, searchProfileId])
   @@index([searchProfileId, visibilityLevel, decision])
   @@index([listingRawId, visibilityLevel])
   @@index([marketSnapshotId])
+}
+
+model Alert {
+  id                  String             @id @default(cuid())
+  listingRawId        String
+  searchProfileId     String
+  listingEvaluationId String?
+  alertType           AlertType
+  severity            AlertSeverity
+  dedupeKey           String             @unique
+  title               String
+  message             String
+  metadataJson        Json?
+  createdAt           DateTime           @default(now())
+  readAt              DateTime?
+  dismissedAt         DateTime?
+  listingRaw          ListingRaw         @relation(fields: [listingRawId], references: [id], onDelete: Cascade)
+  searchProfile       SearchProfile      @relation(fields: [searchProfileId], references: [id], onDelete: Cascade)
+  listingEvaluation   ListingEvaluation? @relation(fields: [listingEvaluationId], references: [id], onDelete: SetNull)
+
+  @@index([searchProfileId, createdAt])
+  @@index([listingRawId, createdAt])
+  @@index([listingEvaluationId])
+  @@index([createdAt])
 }

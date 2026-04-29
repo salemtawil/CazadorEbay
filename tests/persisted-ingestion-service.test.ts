@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import type { Alert, EvaluationResult, Listing, ListingNormalized, MarketSnapshot, SearchProfile } from "../lib/modules/contracts";
+import type { Alert, EvaluationResult, InternalAlert, Listing, ListingNormalized, MarketSnapshot, SearchProfile } from "../lib/modules/contracts";
 import type { ListingProvider } from "../lib/server/listing-providers/contracts";
 import type {
   PersistedEvaluationRecord,
@@ -13,6 +13,7 @@ class MemoryStore implements PersistedIngestionStore {
   readonly listings = new Map<string, Listing>();
   readonly normalized = new Map<string, ListingNormalized>();
   readonly evaluations = new Map<string, { evaluation: EvaluationResult; alerts: Alert[] }>();
+  readonly internalAlerts = new Map<string, Omit<InternalAlert, "id" | "createdAt" | "readAt" | "dismissedAt" | "listingTitle" | "profileName">>();
 
   constructor(
     private readonly profiles: SearchProfile[],
@@ -45,6 +46,7 @@ class MemoryStore implements PersistedIngestionStore {
     return {
       listing: persisted,
       created: !existing,
+      previousListing: existing ?? null,
     };
   }
 
@@ -60,13 +62,44 @@ class MemoryStore implements PersistedIngestionStore {
     alerts: Alert[],
   ): Promise<PersistedEvaluationRecord> {
     const key = `${evaluation.listingRaw.id}:${evaluation.profile.id}`;
-    const created = !this.evaluations.has(key);
+    const existing = this.evaluations.get(key);
+    const created = !existing;
     this.evaluations.set(key, {
       evaluation,
       alerts,
     });
 
-    return { created };
+    return {
+      id: key,
+      created,
+      previousEvaluation: existing
+        ? {
+            id: key,
+            totalScore: existing.evaluation.scoring.totalScore,
+            offerStrategy: existing.evaluation.offer.offerStrategy,
+            decisionStatus: existing.evaluation.decision.status,
+            visibilityLevel: existing.evaluation.visibility.visibilityLevel,
+          }
+        : null,
+    };
+  }
+
+  async createInternalAlerts(
+    alerts: Omit<InternalAlert, "id" | "createdAt" | "readAt" | "dismissedAt" | "listingTitle" | "profileName">[],
+  ): Promise<number> {
+    let created = 0;
+
+    for (const alert of alerts) {
+      const dedupeKey = String(alert.metadata.dedupeKey);
+      if (this.internalAlerts.has(dedupeKey)) {
+        continue;
+      }
+
+      this.internalAlerts.set(dedupeKey, alert);
+      created += 1;
+    }
+
+    return created;
   }
 }
 
@@ -117,6 +150,7 @@ describe("persisted ingestion service", () => {
     expect(store.listings.size).toBe(1);
     expect(store.normalized.size).toBe(1);
     expect(store.evaluations.size).toBe(1);
+    expect(store.internalAlerts.size).toBeGreaterThan(0);
   });
 
   it("updates existing listings and evaluations on subsequent runs", async () => {

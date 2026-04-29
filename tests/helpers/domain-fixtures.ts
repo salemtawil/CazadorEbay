@@ -1,9 +1,12 @@
 import type {
+  Alert,
   Classification,
   Decision,
+  EvaluationResult,
   Listing,
   ListingNormalized,
   MarketSnapshot,
+  OfferPlan,
   ScoreBreakdown,
   SearchProfile,
   VisibilityAssessment,
@@ -98,6 +101,48 @@ export function makeDecision(overrides: Partial<Decision> = {}): Decision {
     maxBid: 210,
     recommendedOffer: 198,
     notes: [],
+    ...overrides,
+  };
+}
+
+export function makeOffer(overrides: Partial<OfferPlan> = {}): OfferPlan {
+  return {
+    listingId: "lst_test",
+    profileId: "prof_test",
+    offerStrategy: "offer_now",
+    anchorOffer: 190,
+    recommendedOffer: 198,
+    walkAwayPrice: 205,
+    offerConfidence: 0.84,
+    reasoning: [],
+    ...overrides,
+  };
+}
+
+export function makeEvaluation(overrides: Partial<EvaluationResult> = {}): EvaluationResult {
+  const listingRaw = overrides.listingRaw ?? makeListing();
+  const profile = overrides.profile ?? makeProfile();
+  const listingNormalized = overrides.listingNormalized ?? makeNormalized({ listingId: listingRaw.id, category: listingRaw.category });
+  const market = overrides.market ?? makeMarket({ marketplace: listingRaw.marketplace, category: listingRaw.category });
+  const classification = overrides.classification ?? makeClassification({ listingId: listingRaw.id });
+  const visibility = overrides.visibility ?? makeVisibility({ listingId: listingRaw.id, profileId: profile.id });
+  const scoring = overrides.scoring ?? makeScoring({ listingId: listingRaw.id, profileId: profile.id });
+  const decision = overrides.decision ?? makeDecision({ listingId: listingRaw.id, profileId: profile.id });
+  const offer = overrides.offer ?? makeOffer({ listingId: listingRaw.id, profileId: profile.id });
+  const alerts = overrides.alerts ?? ([] as Alert[]);
+
+  return {
+    id: `${listingRaw.id}:${profile.id}`,
+    listingRaw,
+    listingNormalized,
+    profile,
+    market,
+    classification,
+    visibility,
+    scoring,
+    decision,
+    offer,
+    alerts,
     ...overrides,
   };
 }

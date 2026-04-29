@@ -1,6 +1,15 @@
 import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/db/prisma";
-import type { Alert, Classification, EvaluationResult, Listing, ListingNormalized, MarketSnapshot, SearchProfile } from "@/lib/modules/contracts";
+import type {
+  Alert,
+  Classification,
+  EvaluationResult,
+  InternalAlert,
+  Listing,
+  ListingNormalized,
+  MarketSnapshot,
+  SearchProfile,
+} from "@/lib/modules/contracts";
 import {
   mapCompleteness,
   mapDecisionStatus,
@@ -15,6 +24,7 @@ import {
   mapSpecialItemType,
   mapVisibilityLevel,
 } from "@/lib/server/prisma-domain-mappers";
+import type { AlertEvaluationSnapshot } from "@/lib/server/internal-alerts";
 import type {
   PersistedEvaluationRecord,
   PersistedIngestionStore,
@@ -27,6 +37,41 @@ function comparableGroupKey(marketplace: string, category: string): string {
 
 function toJsonValue(value: unknown): Prisma.InputJsonValue {
   return JSON.parse(JSON.stringify(value)) as Prisma.InputJsonValue;
+}
+
+function toAlertSeverity(value: InternalAlert["severity"]) {
+  if (value === "critical") {
+    return "CRITICAL";
+  }
+
+  if (value === "warning") {
+    return "WARNING";
+  }
+
+  return "INFO";
+}
+
+function toAlertEvaluationSnapshot(row: {
+  id: string;
+  uiScore: Prisma.Decimal | null;
+  offerStrategy: "NONE" | "AGGRESSIVE" | "BALANCED" | "CONSERVATIVE";
+  decision: "SKIP" | "WATCH" | "REVIEW" | "NEGOTIATE" | "BUY";
+  visibilityLevel: "HIDDEN" | "LOW" | "MEDIUM" | "HIGH";
+}): AlertEvaluationSnapshot {
+  return {
+    id: row.id,
+    totalScore: Number(row.uiScore ?? 0),
+    offerStrategy:
+      row.offerStrategy === "AGGRESSIVE"
+        ? "buy_now"
+        : row.offerStrategy === "BALANCED"
+          ? "offer_now"
+          : row.offerStrategy === "CONSERVATIVE"
+            ? "watch"
+            : "skip",
+    decisionStatus: row.decision,
+    visibilityLevel: row.visibilityLevel === "HIGH" ? "primary_feed" : row.visibilityLevel === "HIDDEN" ? "hidden" : "secondary_feed",
+  };
 }
 
 function findMarketSnapshotId(market: MarketSnapshot): Promise<string | null> {
@@ -77,9 +122,6 @@ export class PrismaIngestionStore implements PersistedIngestionStore {
           source,
           externalItemId: listing.externalId,
         },
-      },
-      select: {
-        id: true,
       },
     });
 
@@ -149,6 +191,7 @@ export class PrismaIngestionStore implements PersistedIngestionStore {
     return {
       listing: mapListingRowToDomain(row),
       created: existing === null,
+      previousListing: existing ? mapListingRowToDomain(existing) : null,
     };
   }
 
@@ -199,11 +242,15 @@ export class PrismaIngestionStore implements PersistedIngestionStore {
       },
       select: {
         id: true,
+        uiScore: true,
+        offerStrategy: true,
+        decision: true,
+        visibilityLevel: true,
       },
     });
     const marketSnapshotId = await findMarketSnapshotId(evaluation.market);
 
-    await prisma.listingEvaluation.upsert({
+    const row = await prisma.listingEvaluation.upsert({
       where: {
         listingRawId_searchProfileId: {
           listingRawId: evaluation.listingRaw.id,
@@ -294,7 +341,34 @@ export class PrismaIngestionStore implements PersistedIngestionStore {
     });
 
     return {
+      id: row.id,
       created: existing === null,
+      previousEvaluation: existing ? toAlertEvaluationSnapshot(existing) : null,
     };
+  }
+
+  async createInternalAlerts(
+    alerts: Omit<InternalAlert, "id" | "createdAt" | "readAt" | "dismissedAt" | "listingTitle" | "profileName">[],
+  ): Promise<number> {
+    if (alerts.length === 0) {
+      return 0;
+    }
+
+    const result = await prisma.alert.createMany({
+      data: alerts.map((alert) => ({
+        listingRawId: alert.listingRawId,
+        searchProfileId: alert.searchProfileId,
+        listingEvaluationId: alert.listingEvaluationId ?? null,
+        alertType: alert.alertType,
+        severity: toAlertSeverity(alert.severity),
+        dedupeKey: String(alert.metadata.dedupeKey ?? `${alert.alertType}:${alert.listingRawId}:${alert.searchProfileId}`),
+        title: alert.title,
+        message: alert.message,
+        metadataJson: toJsonValue(alert.metadata),
+      })),
+      skipDuplicates: true,
+    });
+
+    return result.count;
   }
 }

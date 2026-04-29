@@ -4,6 +4,12 @@ export type DecisionStatus = "WATCH" | "REVIEW" | "BUY" | "NEGOTIATE" | "SKIP";
 export type AlertSeverity = "info" | "warning" | "critical";
 export type VisibilityLevel = "primary_feed" | "secondary_feed" | "hidden";
 export type RiskTolerance = "low" | "medium" | "high";
+export type InternalAlertType =
+  | "NEW_HIGH_SCORE_OPPORTUNITY"
+  | "PRICE_DROPPED"
+  | "DECISION_UPGRADED_TO_BUY_NOW"
+  | "DECISION_UPGRADED_TO_MAKE_OFFER"
+  | "NEW_LISTING_MATCHED_PROFILE";
 
 export interface User {
   id: string;
@@ -153,6 +159,23 @@ export interface Alert {
   severity: AlertSeverity;
   channel: "dashboard" | "email";
   message: string;
+}
+
+export interface InternalAlert {
+  id: string;
+  listingRawId: string;
+  searchProfileId: string;
+  listingEvaluationId?: string;
+  alertType: InternalAlertType;
+  severity: AlertSeverity;
+  title: string;
+  message: string;
+  metadata: Record<string, unknown>;
+  createdAt: string;
+  readAt?: string;
+  dismissedAt?: string;
+  listingTitle: string;
+  profileName: string;
 }
 
 export interface Opportunity {

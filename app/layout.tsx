@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import type { Route } from "next";
 import Link from "next/link";
 import type { ReactNode } from "react";
 import "./globals.css";
@@ -27,6 +28,7 @@ export default function RootLayout({ children }: Readonly<{ children: ReactNode 
                 <Link href="/">Dashboard</Link>
                 <Link href="/profiles">Perfiles</Link>
                 <Link href="/opportunities">Oportunidades</Link>
+                <Link href={"/alerts" as Route}>Alertas</Link>
               </nav>
             </div>
           </header>
