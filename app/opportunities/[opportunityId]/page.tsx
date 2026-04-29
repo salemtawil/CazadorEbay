@@ -3,6 +3,9 @@ import { DecisionBadge } from "@/components/ui/badge";
 import { SectionCard } from "@/components/ui/section-card";
 import { opportunityService } from "@/lib/server/opportunity-service";
 
+export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
+
 function formatCurrency(value: number | null | undefined): string {
   if (value === null || value === undefined) {
     return "n/a";
@@ -23,13 +26,16 @@ export default async function OpportunityDetailPage({
     notFound();
   }
 
+  const positiveReasons = opportunity.scoring.reasoning.concat(opportunity.offer.reasoning);
+  const negativeReasons = opportunity.visibility.suppressionReasons.concat(opportunity.decision.notes);
+
   return (
     <div className="detail-grid">
       <SectionCard title={opportunity.listingRaw.title} subtitle={opportunity.profile.name}>
         <div className="chips" style={{ marginBottom: 18 }}>
           <DecisionBadge status={opportunity.decision.status} />
-          <span className="chip">{opportunity.classification.brand}</span>
-          <span className="chip">{opportunity.classification.model}</span>
+          <span className="chip">{opportunity.classification.brand || "unknown-brand"}</span>
+          <span className="chip">{opportunity.classification.model || "unknown-model"}</span>
           {opportunity.listingNormalized.itemType !== "STANDARD" ? (
             <span className="chip">{opportunity.listingNormalized.itemType.toLowerCase()}</span>
           ) : null}
@@ -68,8 +74,8 @@ export default async function OpportunityDetailPage({
           <div>
             <h3 style={{ marginBottom: 8 }}>Classification</h3>
             <ul>
-              <li>Brand: {opportunity.classification.brand}</li>
-              <li>Model: {opportunity.classification.model}</li>
+              <li>Brand: {opportunity.classification.brand || "unknown-brand"}</li>
+              <li>Model: {opportunity.classification.model || "unknown-model"}</li>
               <li>Confidence: {opportunity.classification.confidence}</li>
               <li>Special item type: {opportunity.listingNormalized.itemType.toLowerCase()}</li>
             </ul>
@@ -77,9 +83,7 @@ export default async function OpportunityDetailPage({
           <div>
             <h3 style={{ marginBottom: 8 }}>Reasons positivas</h3>
             <ul>
-              {opportunity.scoring.reasoning.concat(opportunity.offer.reasoning).map((reason) => (
-                <li key={reason}>{reason}</li>
-              ))}
+              {positiveReasons.length > 0 ? positiveReasons.map((reason) => <li key={reason}>{reason}</li>) : <li>Sin razones registradas.</li>}
             </ul>
           </div>
         </div>
@@ -153,16 +157,20 @@ export default async function OpportunityDetailPage({
           <div>
             <h3 style={{ marginBottom: 8 }}>Reasons negativas</h3>
             <ul>
-              {opportunity.visibility.suppressionReasons.concat(opportunity.decision.notes).map((reason) => (
-                <li key={reason}>{reason}</li>
-              ))}
+              {negativeReasons.length > 0 ? negativeReasons.map((reason) => <li key={reason}>{reason}</li>) : <li>Sin razones registradas.</li>}
             </ul>
           </div>
-          <ul>
-            {opportunity.alerts.map((alert) => (
-              <li key={alert.id}>{alert.message}</li>
-            ))}
-          </ul>
+          {opportunity.alerts.length > 0 ? (
+            <ul>
+              {opportunity.alerts.map((alert) => (
+                <li key={alert.id}>{alert.message}</li>
+              ))}
+            </ul>
+          ) : (
+            <p className="muted" style={{ margin: 0 }}>
+              Sin alertas registradas.
+            </p>
+          )}
         </SectionCard>
       </div>
     </div>

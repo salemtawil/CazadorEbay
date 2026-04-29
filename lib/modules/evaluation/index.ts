@@ -86,6 +86,10 @@ export function evaluateListingForProfile(
 }
 
 export function evaluateCatalog(catalog: OpportunityCatalog): EvaluationResult[] {
+  if (catalog.users.length === 0 || catalog.profiles.length === 0 || catalog.listings.length === 0) {
+    return [];
+  }
+
   const user = getPrimaryUser(catalog.users);
   const profiles = getActiveProfiles(catalog.profiles).filter((profile) => profile.userId === user.id);
   const listings = normalizeListings(catalog.listings);

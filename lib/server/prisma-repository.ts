@@ -8,6 +8,7 @@ import type {
   User,
 } from "@/lib/modules/contracts";
 import type { OpportunityRepository } from "@/lib/server/fixture-repository";
+import { warnOnce } from "@/lib/server/runtime-config";
 
 function parseMarketplace(value: string): Marketplace {
   return value === "FACEBOOK" || value === "MERCARI" ? value : "EBAY";
@@ -68,8 +69,8 @@ function mapProfiles(rows: Awaited<ReturnType<typeof prisma.searchProfile.findMa
     maxPrice: Number(row.maxBudget ?? 999999),
     minScore: Number(row.minScore),
     minConfidence: Number(row.minConfidence),
-    maxBudget: row.maxBudget ? Number(row.maxBudget) : undefined,
-    minResaleMarginPct: row.minResaleMarginPct ? Number(row.minResaleMarginPct) : undefined,
+    maxBudget: row.maxBudget === null ? undefined : Number(row.maxBudget),
+    minResaleMarginPct: row.minResaleMarginPct === null ? undefined : Number(row.minResaleMarginPct),
     offerStrategy: row.riskTolerance === "LOW" ? "conservative" : row.riskTolerance === "HIGH" ? "aggressive" : "balanced",
   }));
 }
@@ -123,8 +124,8 @@ function mapMarket(rows: Awaited<ReturnType<typeof prisma.marketSnapshot.findMan
       category,
       sampleSize: row.sampleSize,
       medianPrice: Number(row.medianPrice),
-      p25Price: row.p25Price ? Number(row.p25Price) : undefined,
-      p10Price: row.p10Price ? Number(row.p10Price) : undefined,
+      p25Price: row.p25Price === null ? undefined : Number(row.p25Price),
+      p10Price: row.p10Price === null ? undefined : Number(row.p10Price),
       lowPrice: Number(row.p10Price ?? row.p25Price ?? row.medianPrice),
       highPrice: Number(row.stdDev ? row.medianPrice.add(row.stdDev) : row.medianPrice),
       sellThroughRate: mapLiquidityToSellThrough(row.liquidityBand),
@@ -142,6 +143,15 @@ export class PrismaOpportunityRepository implements OpportunityRepository {
       prisma.listingRaw.findMany({ orderBy: { fetchedAt: "desc" } }),
       prisma.marketSnapshot.findMany({ orderBy: { snapshotAt: "desc" } }),
     ]);
+
+    if (users.length === 0 || profiles.length === 0) {
+      warnOnce("[prisma-repository] Catalog is incomplete.", {
+        users: users.length,
+        profiles: profiles.length,
+        listings: listings.length,
+        market: market.length,
+      });
+    }
 
     return {
       users: mapUsers(users),

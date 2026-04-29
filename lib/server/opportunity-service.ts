@@ -5,13 +5,15 @@ import {
   type OpportunityRepository,
 } from "@/lib/server/fixture-repository";
 import { PrismaOpportunityRepository } from "@/lib/server/prisma-repository";
-
-function shouldUseFixtures(): boolean {
-  return process.env.USE_FIXTURE_DATA === "true";
-}
+import { shouldUseFixtureData, warnMissingDatabaseUrl } from "@/lib/server/runtime-config";
 
 function createRepository(): OpportunityRepository {
-  return shouldUseFixtures() ? new FixtureOpportunityRepository() : new PrismaOpportunityRepository();
+  if (shouldUseFixtureData()) {
+    return new FixtureOpportunityRepository();
+  }
+
+  warnMissingDatabaseUrl("opportunity-service");
+  return new PrismaOpportunityRepository();
 }
 
 export class OpportunityService {

@@ -41,6 +41,17 @@ describe("evaluation pipeline", () => {
     expect(new Set(evaluations.map((item) => item.profile.id)).size).toBe(2);
   });
 
+  it("returns an empty result when the catalog is incomplete", () => {
+    const evaluations = evaluateCatalog({
+      users: [],
+      profiles: [],
+      listings: [],
+      market: [],
+    });
+
+    expect(evaluations).toEqual([]);
+  });
+
   it("cuts excluded listings", () => {
     const listing = makeListing({
       title: "Broken Nintendo Switch for parts",

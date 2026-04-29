@@ -10,7 +10,7 @@ Web app full-stack para evaluar listings de marketplace con `Next.js + TypeScrip
 - Seed coherente con el `schema.prisma` actual.
 - Runtime con dos modos de datos:
   - `USE_FIXTURE_DATA=false`: usa Prisma/Supabase.
-  - `USE_FIXTURE_DATA=true`: usa fixtures locales como fallback controlado.
+  - `USE_FIXTURE_DATA=true`: usa fixtures locales solo en entornos no productivos.
 
 ## Variables de entorno
 
@@ -33,7 +33,7 @@ EBAY_SEARCH_LIMIT="12"
 
 - `DATABASE_URL`: connection string del pooler de Supabase. Es la que debe usar la app en runtime, especialmente en Vercel.
 - `DIRECT_URL`: conexion directa a la base. Prisma la usa para `migrate dev` y `migrate deploy`.
-- `USE_FIXTURE_DATA`: fuerza el uso del repository de fixtures. Util para demo local sin DB. En produccion debe quedar en `false`.
+- `USE_FIXTURE_DATA`: fuerza el uso del repository de fixtures. Util para demo local sin DB. En produccion se ignora aunque este en `true`.
 - `EBAY_ENABLED`: activa la ingestión real desde eBay cuando el runtime usa el repository de fixtures.
 - `EBAY_CLIENT_ID`: App ID de eBay Developer.
 - `EBAY_CLIENT_SECRET`: Cert ID / client secret de eBay Developer.
@@ -47,7 +47,7 @@ EBAY_SEARCH_LIMIT="12"
 - En Supabase conviene usar el pooler (`6543`) para runtime serverless.
 - Prisma necesita ademas `DIRECT_URL` porque las migraciones no deben ir por PgBouncer.
 - `postinstall`, `build` y `vercel-build` ejecutan `prisma generate`, lo que evita fallos comunes en Vercel cuando el cliente Prisma no esta generado.
-- La app no depende implicitamente de fixtures en produccion. Si `USE_FIXTURE_DATA=false`, el catalogo se carga desde Prisma.
+- La app no depende implicitamente de fixtures en produccion. Si `USE_FIXTURE_DATA=false`, o si el runtime es productivo, el catalogo se carga desde Prisma.
 - La integración de eBay usa Browse API `item_summary/search` y OAuth client credentials con credenciales del Developer Program.
 
 ## Flujo local exacto
@@ -153,7 +153,7 @@ npm run vercel-build
 - La UI y el API consumen el resultado final del pipeline.
 - El servicio intenta cargar catalogo desde Prisma cuando `USE_FIXTURE_DATA=false`.
 - Si quieres una demo sin DB, usa `USE_FIXTURE_DATA=true`.
-- Si ademas activas `EBAY_ENABLED=true` con credenciales validas, el repository de fixtures reemplaza los listings locales por listings reales de eBay y cae a fixtures si la llamada falla.
+- Si ademas activas `EBAY_ENABLED=true` con credenciales validas, el repository de fixtures reemplaza los listings locales por listings reales de eBay y cae a fixtures solo fuera de produccion si la llamada falla.
 - Los fixtures ya no son una dependencia implicita del runtime productivo; ahora son un modo explicito.
 
 ## Ingestión inicial desde eBay
