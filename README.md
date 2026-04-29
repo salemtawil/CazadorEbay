@@ -27,6 +27,7 @@ EBAY_ENVIRONMENT="sandbox"
 EBAY_MARKETPLACE_ID="EBAY_US"
 EBAY_BROWSE_SCOPE="https://api.ebay.com/oauth/api_scope"
 EBAY_SEARCH_LIMIT="12"
+CRON_SECRET=""
 ```
 
 ### Que hace cada variable
@@ -41,6 +42,7 @@ EBAY_SEARCH_LIMIT="12"
 - `EBAY_MARKETPLACE_ID`: marketplace para Browse API, por ejemplo `EBAY_US`.
 - `EBAY_BROWSE_SCOPE`: scope OAuth para Browse API. Por defecto `https://api.ebay.com/oauth/api_scope`.
 - `EBAY_SEARCH_LIMIT`: máximo de resultados por perfil en la primera integración.
+- `CRON_SECRET`: secreto opcional para proteger las rutas de refresh manual y cron con `Authorization: Bearer ...`.
 
 ## Prisma + Supabase
 
@@ -151,10 +153,74 @@ npm run vercel-build
 ## Fuente de datos en runtime
 
 - La UI y el API consumen el resultado final del pipeline.
-- El servicio intenta cargar catalogo desde Prisma cuando `USE_FIXTURE_DATA=false`.
+- La UI intenta leer primero evaluaciones persistidas desde Prisma.
+- Si no existen evaluaciones persistidas, el servicio cae al catalogo Prisma y recalcula en runtime.
 - Si quieres una demo sin DB, usa `USE_FIXTURE_DATA=true`.
 - Si ademas activas `EBAY_ENABLED=true` con credenciales validas, el repository de fixtures reemplaza los listings locales por listings reales de eBay y cae a fixtures solo fuera de produccion si la llamada falla.
 - Los fixtures ya no son una dependencia implicita del runtime productivo; ahora son un modo explicito.
+
+## Ingestion persistida
+
+- Endpoint manual: `GET` o `POST /api/ingest/run`
+- Endpoint cron: `GET /api/cron/ingest`
+- Si `CRON_SECRET` esta definido, ambas rutas requieren `Authorization: Bearer <CRON_SECRET>`.
+- La corrida hace:
+  - carga perfiles activos desde Prisma
+  - consulta listings reales en eBay
+  - upsert de `ListingRaw` por `source + externalItemId`
+  - upsert de `ListingNormalized`
+  - evaluacion por perfil activo
+  - upsert de `ListingEvaluation`
+
+### Probar localmente
+
+1. Configura:
+   - `USE_FIXTURE_DATA=false`
+   - `EBAY_ENABLED=true`
+   - `EBAY_CLIENT_ID`
+   - `EBAY_CLIENT_SECRET`
+2. Levanta la app:
+
+```bash
+npm run dev
+```
+
+3. Ejecuta una corrida manual:
+
+```bash
+curl -X POST http://localhost:3000/api/ingest/run
+```
+
+Si configuraste `CRON_SECRET`, agrega:
+
+```bash
+curl -X POST http://localhost:3000/api/ingest/run -H "Authorization: Bearer TU_SECRET"
+```
+
+### Probar en Vercel
+
+1. Configura en Production:
+   - `DATABASE_URL`
+   - `DIRECT_URL`
+   - `USE_FIXTURE_DATA=false`
+   - `EBAY_ENABLED=true`
+   - `EBAY_CLIENT_ID`
+   - `EBAY_CLIENT_SECRET`
+   - `CRON_SECRET` opcional pero recomendado
+2. Despliega con `vercel.json` incluido.
+3. Prueba el refresh manual:
+
+```bash
+curl -X POST https://TU_DOMINIO/api/ingest/run -H "Authorization: Bearer TU_SECRET"
+```
+
+4. El cron queda registrado en `/api/cron/ingest` con schedule `0 5 * * *` en UTC.
+
+### Qué queda persistido
+
+- `ListingRaw`: URL, precio, shipping, feedback del seller, `fetchedAt`, `rawJson` y metadatos base del listing.
+- `ListingNormalized`: brand, model, señales mínimas de completeness/defect y confidence.
+- `ListingEvaluation`: estado del listing, visibilidad, decisión, scores, drivers, oferta recomendada y `evaluationJson` completo para hidratar la UI desde DB.
 
 ## Ingestión inicial desde eBay
 

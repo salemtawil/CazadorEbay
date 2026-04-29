@@ -1,42 +1,33 @@
+import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/db/prisma";
 import type {
+  Alert,
+  Classification,
+  Decision,
+  EvaluationResult,
   Listing,
   MarketSnapshot,
-  Marketplace,
   OpportunityCatalog,
+  ScoreBreakdown,
   SearchProfile,
   User,
+  VisibilityAssessment,
+  OfferPlan,
 } from "@/lib/modules/contracts";
 import type { OpportunityRepository } from "@/lib/server/fixture-repository";
+import { buildAlerts } from "@/lib/modules/alerts";
+import { normalizeListing } from "@/lib/modules/listings";
 import { warnOnce } from "@/lib/server/runtime-config";
-
-function parseMarketplace(value: string): Marketplace {
-  return value === "FACEBOOK" || value === "MERCARI" ? value : "EBAY";
-}
-
-function mapLiquidityToSellThrough(liquidityBand: string): number {
-  if (liquidityBand === "HIGH") {
-    return 0.72;
-  }
-
-  if (liquidityBand === "MEDIUM") {
-    return 0.58;
-  }
-
-  return 0.4;
-}
-
-function mapLiquidityToDemand(liquidityBand: string): number {
-  if (liquidityBand === "HIGH") {
-    return 8.2;
-  }
-
-  if (liquidityBand === "MEDIUM") {
-    return 6.6;
-  }
-
-  return 4.8;
-}
+import {
+  mapDecisionStatusToDomain,
+  mapListingRowToDomain,
+  mapMarketRowsToDomain,
+  mapMarketRowToDomain,
+  mapNormalizedRowToDomain,
+  mapOfferStrategyToDomain,
+  mapProfileRowToDomain,
+  mapVisibilityLevelToDomain,
+} from "@/lib/server/prisma-domain-mappers";
 
 function mapUsers(rows: Awaited<ReturnType<typeof prisma.user.findMany>>): User[] {
   return rows.map((row) => ({
@@ -48,91 +39,172 @@ function mapUsers(rows: Awaited<ReturnType<typeof prisma.user.findMany>>): User[
   }));
 }
 
-function mapProfiles(rows: Awaited<ReturnType<typeof prisma.searchProfile.findMany>>): SearchProfile[] {
-  return rows.map((row) => ({
-    id: row.id,
-    userId: row.userId,
-    name: row.name,
-    description: row.categoryHint ?? row.name,
-    strategyMode: row.strategyMode.toLowerCase() as SearchProfile["strategyMode"],
-    riskTolerance: row.riskTolerance.toLowerCase() as SearchProfile["riskTolerance"],
-    strictMode: row.strictMode,
-    includePartsRepairs: row.includePartsRepairs,
-    includeIncompleteItems: row.includeIncompleteItems,
-    includeAccessories: row.includeAccessories,
-    showLowConfidenceItems: row.showLowConfidenceItems,
-    keywords: row.searchTerms,
-    blockedTerms: row.excludedTerms,
-    targetCategories: row.categoryHint ? [row.categoryHint] : ["uncategorized"],
-    preferredConditions: ["NEW", "USED_EXCELLENT", "USED_GOOD", "PARTS"],
-    minPrice: 0,
-    maxPrice: Number(row.maxBudget ?? 999999),
-    minScore: Number(row.minScore),
-    minConfidence: Number(row.minConfidence),
-    maxBudget: row.maxBudget === null ? undefined : Number(row.maxBudget),
-    minResaleMarginPct: row.minResaleMarginPct === null ? undefined : Number(row.minResaleMarginPct),
-    offerStrategy: row.riskTolerance === "LOW" ? "conservative" : row.riskTolerance === "HIGH" ? "aggressive" : "balanced",
-  }));
+function parseEvaluationJson<T>(value: unknown): T | null {
+  if (!value || typeof value !== "object") {
+    return null;
+  }
+
+  return value as T;
 }
 
-function mapListings(rows: Awaited<ReturnType<typeof prisma.listingRaw.findMany>>): Listing[] {
-  return rows.map((row) => {
-    const raw = (row.rawJson ?? {}) as Record<string, unknown>;
-    const attributes = ((raw.attributes as Record<string, string | number | boolean>) ?? {}) as Record<
-      string,
-      string | number | boolean
-    >;
-
-    return {
-      id: row.id,
-      marketplace: parseMarketplace(row.source),
-      externalId: row.externalItemId,
-      title: row.title,
-      subtitle: typeof raw.subtitle === "string" ? raw.subtitle : undefined,
-      url: row.url,
-      category: typeof raw.category === "string" ? raw.category : "uncategorized",
-      condition:
-        raw.condition === "NEW" || raw.condition === "USED_EXCELLENT" || raw.condition === "USED_GOOD" || raw.condition === "PARTS"
-          ? raw.condition
-          : "USED_GOOD",
-      price: Number(row.itemPrice ?? 0),
-      shippingCost: Number(row.shippingPrice ?? 0),
-      bestOfferAvailable: row.bestOfferAvailable,
-      currency: row.currency,
-      sellerName: typeof raw.sellerName === "string" ? raw.sellerName : "unknown-seller",
-      sellerRating: Number(row.sellerFeedbackPercent ?? 0),
-      sellerSalesCount: row.sellerFeedbackCount ?? 0,
-      returnsAccepted: typeof raw.returnsAccepted === "boolean" ? raw.returnsAccepted : false,
-      location: typeof raw.location === "string" ? raw.location : "Unknown",
-      endAt: row.endTime?.toISOString(),
-      scrapedAt: row.fetchedAt.toISOString(),
-      attributes,
+type PersistedEvaluationRow = Prisma.ListingEvaluationGetPayload<{
+  include: {
+    listingRaw: {
+      include: {
+        normalized: true;
+      };
     };
-  });
+    searchProfile: true;
+    marketSnapshot: true;
+  };
+}>;
+
+function buildPersistedScoring(evaluation: PersistedEvaluationRow): ScoreBreakdown {
+  const payload = parseEvaluationJson<{ scoring?: ScoreBreakdown }>(evaluation.evaluationJson);
+  if (payload?.scoring) {
+    return payload.scoring;
+  }
+
+  return {
+    listingId: evaluation.listingRawId,
+    profileId: evaluation.searchProfileId,
+    totalScore: Number(evaluation.uiScore ?? 0),
+    priceScore: Number(evaluation.priceOpportunityScore ?? 0),
+    demandScore: Number(evaluation.liquidityScore ?? 0),
+    trustScore: Number(evaluation.sellerScore ?? 0),
+    fitScore: Number(evaluation.completenessFitScore ?? 0),
+    liquidityScore: Number(evaluation.liquidityScore ?? 0),
+    riskPenalty: Number(evaluation.riskPenalty ?? 0),
+    confidencePenalty: Number(evaluation.confidencePenalty ?? 0),
+    reasoning: Array.isArray(evaluation.driversPositiveJson) ? (evaluation.driversPositiveJson as string[]) : [],
+  };
 }
 
-function mapMarket(rows: Awaited<ReturnType<typeof prisma.marketSnapshot.findMany>>): MarketSnapshot[] {
-  return rows.map((row) => {
-    const [marketplaceRaw, category] = row.comparableGroupKey.includes(":")
-      ? row.comparableGroupKey.split(":", 2)
-      : ["EBAY", row.comparableGroupKey];
-    const marketplace = parseMarketplace(marketplaceRaw);
+function buildPersistedClassification(evaluation: PersistedEvaluationRow, listing: Listing): Classification {
+  const payload = parseEvaluationJson<{ classification?: Classification }>(evaluation.evaluationJson);
+  if (payload?.classification) {
+    return payload.classification;
+  }
 
-    return {
-      id: row.id,
-      marketplace,
-      category,
-      sampleSize: row.sampleSize,
-      medianPrice: Number(row.medianPrice),
-      p25Price: row.p25Price === null ? undefined : Number(row.p25Price),
-      p10Price: row.p10Price === null ? undefined : Number(row.p10Price),
-      lowPrice: Number(row.p10Price ?? row.p25Price ?? row.medianPrice),
-      highPrice: Number(row.stdDev ? row.medianPrice.add(row.stdDev) : row.medianPrice),
-      sellThroughRate: mapLiquidityToSellThrough(row.liquidityBand),
-      demandIndex: mapLiquidityToDemand(row.liquidityBand),
-      feeRate: 0.13,
-    };
+  return {
+    listingId: listing.id,
+    brand: evaluation.listingRaw.normalized?.brand ?? "GENERIC",
+    model: evaluation.listingRaw.normalized?.model ?? "UNSPECIFIED",
+    confidence: Number(evaluation.comparableMatchConfidence ?? evaluation.listingRaw.normalized?.normalizationConfidence ?? 0.55),
+    flags: [],
+    notes: [],
+  };
+}
+
+function buildPersistedVisibility(evaluation: PersistedEvaluationRow): VisibilityAssessment {
+  const payload = parseEvaluationJson<{ visibility?: VisibilityAssessment }>(evaluation.evaluationJson);
+  if (payload?.visibility) {
+    return payload.visibility;
+  }
+
+  return {
+    listingId: evaluation.listingRawId,
+    profileId: evaluation.searchProfileId,
+    visibilityLevel: mapVisibilityLevelToDomain(evaluation.visibilityLevel),
+    isVisible: evaluation.visibilityLevel !== "HIDDEN",
+    suppressedByProfile: false,
+    suppressionReasons: Array.isArray(evaluation.driversNegativeJson) ? (evaluation.driversNegativeJson as string[]) : [],
+  };
+}
+
+function buildPersistedDecision(evaluation: PersistedEvaluationRow): Decision {
+  const payload = parseEvaluationJson<{ decision?: Decision }>(evaluation.evaluationJson);
+  if (payload?.decision) {
+    return payload.decision;
+  }
+
+  return {
+    listingId: evaluation.listingRawId,
+    profileId: evaluation.searchProfileId,
+    status: mapDecisionStatusToDomain(evaluation.decision),
+    confidence: Number(evaluation.decisionConfidence ?? 0),
+    expectedResale: 0,
+    expectedMargin: 0,
+    maxBid: 0,
+    recommendedOffer: Number(evaluation.recommendedOffer ?? 0),
+    notes: Array.isArray(evaluation.driversNegativeJson) ? (evaluation.driversNegativeJson as string[]) : [],
+  };
+}
+
+function buildPersistedOffer(evaluation: PersistedEvaluationRow): OfferPlan {
+  const payload = parseEvaluationJson<{ offer?: OfferPlan }>(evaluation.evaluationJson);
+  if (payload?.offer) {
+    return payload.offer;
+  }
+
+  return {
+    listingId: evaluation.listingRawId,
+    profileId: evaluation.searchProfileId,
+    offerStrategy: mapOfferStrategyToDomain(evaluation.offerStrategy),
+    anchorOffer: evaluation.anchorOffer === null ? null : Number(evaluation.anchorOffer),
+    recommendedOffer: evaluation.recommendedOffer === null ? null : Number(evaluation.recommendedOffer),
+    walkAwayPrice: evaluation.walkAwayPrice === null ? null : Number(evaluation.walkAwayPrice),
+    offerConfidence: Number(evaluation.decisionConfidence ?? 0),
+    reasoning: Array.isArray(evaluation.driversPositiveJson) ? (evaluation.driversPositiveJson as string[]) : [],
+  };
+}
+
+function buildPersistedAlerts(
+  evaluation: PersistedEvaluationRow,
+  listing: Listing,
+  classification: Classification,
+  scoring: ScoreBreakdown,
+  visibility: VisibilityAssessment,
+  decision: Decision,
+): Alert[] {
+  const payload = parseEvaluationJson<{ alerts?: Alert[] }>(evaluation.evaluationJson);
+  if (payload?.alerts) {
+    return payload.alerts;
+  }
+
+  return buildAlerts(evaluation.searchProfileId, listing, classification, scoring, visibility, decision);
+}
+
+function buildPersistedEvaluationResult(evaluation: PersistedEvaluationRow): EvaluationResult {
+  const listingRaw = mapListingRowToDomain(evaluation.listingRaw);
+  const payload = parseEvaluationJson<{
+    listingNormalized?: import("@/lib/modules/contracts").ListingNormalized;
+    market?: MarketSnapshot;
+  }>(evaluation.evaluationJson);
+  const listingNormalized = payload?.listingNormalized ?? mapNormalizedRowToDomain(evaluation.listingRaw.normalized, listingRaw);
+  const profile = mapProfileRowToDomain(evaluation.searchProfile);
+  const market = payload?.market ?? (evaluation.marketSnapshot ? mapMarketRowToDomain(evaluation.marketSnapshot) : {
+    id: "missing-market",
+    marketplace: listingRaw.marketplace,
+    category: listingRaw.category,
+    sampleSize: 0,
+    medianPrice: 0,
+    lowPrice: 0,
+    highPrice: 0,
+    sellThroughRate: 0,
+    demandIndex: 0,
+    feeRate: 0.13,
   });
+  const scoring = buildPersistedScoring(evaluation);
+  const classification = buildPersistedClassification(evaluation, listingRaw);
+  const visibility = buildPersistedVisibility(evaluation);
+  const decision = buildPersistedDecision(evaluation);
+  const offer = buildPersistedOffer(evaluation);
+  const alerts = buildPersistedAlerts(evaluation, listingRaw, classification, scoring, visibility, decision);
+
+  return {
+    id: `${listingRaw.id}:${profile.id}`,
+    listingRaw,
+    listingNormalized,
+    profile,
+    market,
+    classification,
+    visibility,
+    scoring,
+    decision,
+    offer,
+    alerts,
+  };
 }
 
 export class PrismaOpportunityRepository implements OpportunityRepository {
@@ -155,9 +227,52 @@ export class PrismaOpportunityRepository implements OpportunityRepository {
 
     return {
       users: mapUsers(users),
-      profiles: mapProfiles(profiles),
-      listings: mapListings(listings),
-      market: mapMarket(market),
+      profiles: profiles.map(mapProfileRowToDomain),
+      listings: listings.map(mapListingRowToDomain),
+      market: mapMarketRowsToDomain(market),
     };
+  }
+
+  async loadPersistedEvaluations(): Promise<EvaluationResult[] | null> {
+    const rows = await prisma.listingEvaluation.findMany({
+      include: {
+        listingRaw: {
+          include: {
+            normalized: true,
+          },
+        },
+        searchProfile: true,
+        marketSnapshot: true,
+      },
+      orderBy: [
+        {
+          visibilityLevel: "asc",
+        },
+        {
+          uiScore: "desc",
+        },
+        {
+          updatedAt: "desc",
+        },
+      ],
+    });
+
+    if (rows.length === 0) {
+      return null;
+    }
+
+    return rows.map(buildPersistedEvaluationResult).sort((a, b) => {
+      if (a.visibility.visibilityLevel !== b.visibility.visibilityLevel) {
+        return a.visibility.visibilityLevel === "primary_feed"
+          ? -1
+          : b.visibility.visibilityLevel === "primary_feed"
+            ? 1
+            : a.visibility.visibilityLevel === "secondary_feed" && b.visibility.visibilityLevel === "hidden"
+              ? -1
+              : 1;
+      }
+
+      return b.scoring.totalScore - a.scoring.totalScore;
+    });
   }
 }

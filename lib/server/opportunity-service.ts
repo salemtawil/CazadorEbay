@@ -20,6 +20,11 @@ export class OpportunityService {
   constructor(private readonly repository: OpportunityRepository = createRepository()) {}
 
   async listEvaluations(): Promise<EvaluationResult[]> {
+    const persistedEvaluations = await this.repository.loadPersistedEvaluations();
+    if (persistedEvaluations) {
+      return persistedEvaluations;
+    }
+
     const catalog = await this.repository.loadCatalog();
     return evaluateCatalog(catalog);
   }
