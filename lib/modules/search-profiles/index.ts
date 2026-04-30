@@ -2,7 +2,7 @@ import type { Listing, SearchProfile } from "@/lib/modules/contracts";
 import { normalizeListing } from "@/lib/modules/listings";
 
 export function getActiveProfiles(profiles: SearchProfile[]): SearchProfile[] {
-  return profiles;
+  return profiles.filter((profile) => profile.status === "active");
 }
 
 export function listingMatchesProfile(listing: Listing, profile: SearchProfile): boolean {

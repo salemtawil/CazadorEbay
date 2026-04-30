@@ -3,6 +3,7 @@ import type {
   ListingNormalized,
   MarketSnapshot,
   Marketplace,
+  OpportunityInspection,
   SearchProfile,
 } from "@/lib/modules/contracts";
 import type {
@@ -57,6 +58,8 @@ export function mapProfileRowToDomain(row: SearchProfileRow): SearchProfile {
     userId: row.userId,
     name: row.name,
     description: row.categoryHint ?? row.name,
+    status: row.status.toLowerCase() as SearchProfile["status"],
+    categoryHint: row.categoryHint ?? undefined,
     strategyMode: row.strategyMode.toLowerCase() as SearchProfile["strategyMode"],
     riskTolerance: row.riskTolerance.toLowerCase() as SearchProfile["riskTolerance"],
     strictMode: row.strictMode,
@@ -240,6 +243,14 @@ export function mapSpecialItemType(itemType: ListingNormalized["itemType"]): Spe
   }
 
   return "NONE";
+}
+
+export function mapListingStateToDomain(value: ListingState): OpportunityInspection["listingState"] {
+  return value.toLowerCase() as OpportunityInspection["listingState"];
+}
+
+export function mapSpecialItemTypeToDomain(value: SpecialItemType): OpportunityInspection["specialItemType"] {
+  return value.toLowerCase() as OpportunityInspection["specialItemType"];
 }
 
 export function mapVisibilityLevel(level: "primary_feed" | "secondary_feed" | "hidden"): VisibilityLevel {

@@ -10,6 +10,7 @@ import type {
   MarketSnapshot,
   SearchProfile,
 } from "@/lib/modules/contracts";
+import { buildOpportunityInspection } from "@/lib/modules/opportunity-inspection";
 import {
   mapCompleteness,
   mapDecisionStatus,
@@ -249,6 +250,7 @@ export class PrismaIngestionStore implements PersistedIngestionStore {
       },
     });
     const marketSnapshotId = await findMarketSnapshotId(evaluation.market);
+    const inspection = evaluation.inspection ?? buildOpportunityInspection(evaluation);
 
     const row = await prisma.listingEvaluation.upsert({
       where: {
@@ -263,8 +265,8 @@ export class PrismaIngestionStore implements PersistedIngestionStore {
         marketSnapshotId,
         listingState: mapListingState(evaluation.listingNormalized.itemType),
         specialItemType: mapSpecialItemType(evaluation.listingNormalized.itemType),
-        comparableMatchConfidence: evaluation.classification.confidence,
-        profileCompatibility: Math.min(1, evaluation.scoring.fitScore / 100),
+        comparableMatchConfidence: inspection.comparableMatchConfidence,
+        profileCompatibility: inspection.profileCompatibility,
         visibilityLevel: mapVisibilityLevel(evaluation.visibility.visibilityLevel),
         decision: mapDecisionStatus(evaluation.decision.status),
         decisionConfidence: evaluation.decision.confidence,
@@ -276,10 +278,10 @@ export class PrismaIngestionStore implements PersistedIngestionStore {
         completenessFitScore: evaluation.scoring.fitScore,
         riskPenalty: evaluation.scoring.riskPenalty,
         confidencePenalty: evaluation.scoring.confidencePenalty,
-        rawScore: evaluation.scoring.totalScore + evaluation.scoring.riskPenalty + evaluation.scoring.confidencePenalty,
-        uiScore: evaluation.scoring.totalScore,
-        driversPositiveJson: toJsonValue(evaluation.scoring.reasoning),
-        driversNegativeJson: toJsonValue(evaluation.visibility.suppressionReasons.concat(evaluation.decision.notes)),
+        rawScore: inspection.rawScore,
+        uiScore: inspection.uiScore,
+        driversPositiveJson: toJsonValue(inspection.driversPositive),
+        driversNegativeJson: toJsonValue(inspection.driversNegative),
         offerStrategy: mapOfferStrategy(evaluation.offer.offerStrategy),
         anchorOffer: evaluation.offer.anchorOffer,
         recommendedOffer: evaluation.offer.recommendedOffer,
@@ -293,14 +295,15 @@ export class PrismaIngestionStore implements PersistedIngestionStore {
           offer: evaluation.offer,
           market: evaluation.market,
           alerts,
+          inspection,
         }),
       },
       update: {
         marketSnapshotId,
         listingState: mapListingState(evaluation.listingNormalized.itemType),
         specialItemType: mapSpecialItemType(evaluation.listingNormalized.itemType),
-        comparableMatchConfidence: evaluation.classification.confidence,
-        profileCompatibility: Math.min(1, evaluation.scoring.fitScore / 100),
+        comparableMatchConfidence: inspection.comparableMatchConfidence,
+        profileCompatibility: inspection.profileCompatibility,
         visibilityLevel: mapVisibilityLevel(evaluation.visibility.visibilityLevel),
         decision: mapDecisionStatus(evaluation.decision.status),
         decisionConfidence: evaluation.decision.confidence,
@@ -312,10 +315,10 @@ export class PrismaIngestionStore implements PersistedIngestionStore {
         completenessFitScore: evaluation.scoring.fitScore,
         riskPenalty: evaluation.scoring.riskPenalty,
         confidencePenalty: evaluation.scoring.confidencePenalty,
-        rawScore: evaluation.scoring.totalScore + evaluation.scoring.riskPenalty + evaluation.scoring.confidencePenalty,
-        uiScore: evaluation.scoring.totalScore,
-        driversPositiveJson: toJsonValue(evaluation.scoring.reasoning),
-        driversNegativeJson: toJsonValue(evaluation.visibility.suppressionReasons.concat(evaluation.decision.notes)),
+        rawScore: inspection.rawScore,
+        uiScore: inspection.uiScore,
+        driversPositiveJson: toJsonValue(inspection.driversPositive),
+        driversNegativeJson: toJsonValue(inspection.driversNegative),
         offerStrategy: mapOfferStrategy(evaluation.offer.offerStrategy),
         anchorOffer: evaluation.offer.anchorOffer,
         recommendedOffer: evaluation.offer.recommendedOffer,
@@ -329,6 +332,7 @@ export class PrismaIngestionStore implements PersistedIngestionStore {
           offer: evaluation.offer,
           market: evaluation.market,
           alerts,
+          inspection,
         }),
       },
     });

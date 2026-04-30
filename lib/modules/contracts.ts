@@ -4,6 +4,18 @@ export type DecisionStatus = "WATCH" | "REVIEW" | "BUY" | "NEGOTIATE" | "SKIP";
 export type AlertSeverity = "info" | "warning" | "critical";
 export type VisibilityLevel = "primary_feed" | "secondary_feed" | "hidden";
 export type RiskTolerance = "low" | "medium" | "high";
+export type SearchProfileStatus = "active" | "draft" | "paused" | "archived";
+export type OpportunityListingState = "standard" | "incomplete" | "accessory_only" | "parts_repair" | "lot" | "unknown";
+export type OpportunitySpecialItemType =
+  | "none"
+  | "accessory"
+  | "bundle"
+  | "display_unit"
+  | "open_box"
+  | "parts_repair"
+  | "lot"
+  | "collectible"
+  | "unknown";
 export type InternalAlertType =
   | "NEW_HIGH_SCORE_OPPORTUNITY"
   | "PRICE_DROPPED"
@@ -24,7 +36,9 @@ export interface SearchProfile {
   userId: string;
   name: string;
   description: string;
-  strategyMode?: "flip" | "buy_and_hold" | "arbitrage" | "custom";
+  status: SearchProfileStatus;
+  categoryHint?: string;
+  strategyMode?: "flip" | "buy_and_hold" | "arbitrage" | "clearance" | "custom";
   riskTolerance: RiskTolerance;
   strictMode: boolean;
   includePartsRepairs: boolean;
@@ -178,6 +192,18 @@ export interface InternalAlert {
   profileName: string;
 }
 
+export interface OpportunityInspection {
+  listingState?: OpportunityListingState;
+  specialItemType?: OpportunitySpecialItemType;
+  comparableMatchConfidence?: number;
+  profileCompatibility?: number;
+  rawScore?: number;
+  uiScore?: number;
+  driversPositive: string[];
+  driversNegative: string[];
+  updatedAt?: string;
+}
+
 export interface Opportunity {
   id: string;
   listingRaw: Listing;
@@ -190,6 +216,7 @@ export interface Opportunity {
   decision: Decision;
   offer: OfferPlan;
   alerts: Alert[];
+  inspection?: OpportunityInspection;
 }
 
 export type EvaluationResult = Opportunity;

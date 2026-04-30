@@ -16,6 +16,7 @@ import type {
 import { decideListing } from "@/lib/modules/decisions";
 import { normalizeListing, normalizeListings } from "@/lib/modules/listings";
 import { getMarketSnapshot } from "@/lib/modules/market";
+import { buildOpportunityInspection } from "@/lib/modules/opportunity-inspection";
 import { planOffer } from "@/lib/modules/offers";
 import { getActiveProfiles, listingMatchesProfile } from "@/lib/modules/search-profiles";
 import { scoreListing } from "@/lib/modules/scoring";
@@ -37,7 +38,10 @@ function isExcludedByProfile(listing: Listing, profile: SearchProfile): boolean 
 }
 
 function buildFinalEvaluationResult(evaluation: EvaluationResult): EvaluationResult {
-  return evaluation;
+  return {
+    ...evaluation,
+    inspection: buildOpportunityInspection(evaluation),
+  };
 }
 
 export function evaluateListingForProfile(

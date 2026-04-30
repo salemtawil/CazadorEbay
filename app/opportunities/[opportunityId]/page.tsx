@@ -1,17 +1,45 @@
 import { notFound } from "next/navigation";
 import { DecisionBadge } from "@/components/ui/badge";
 import { SectionCard } from "@/components/ui/section-card";
+import {
+  formatCount,
+  formatCurrency,
+  formatDateTime,
+  formatPercent,
+  formatText,
+  humanizeToken,
+} from "@/lib/formatting";
+import { alertService } from "@/lib/server/alert-service";
 import { opportunityService } from "@/lib/server/opportunity-service";
+import { isDatabaseConfigured } from "@/lib/server/runtime-config";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-function formatCurrency(value: number | null | undefined): string {
-  if (value === null || value === undefined) {
-    return "n/a";
+function normalizeIdentityValue(value: string | undefined, fallbackTokens: string[]): string {
+  if (!value || fallbackTokens.includes(value.toLowerCase())) {
+    return "not set";
   }
 
-  return `$${value}`;
+  return value;
+}
+
+function renderReasonList(reasons: string[], emptyLabel: string) {
+  if (reasons.length === 0) {
+    return (
+      <div className="empty-state">
+        <p style={{ margin: 0 }}>{emptyLabel}</p>
+      </div>
+    );
+  }
+
+  return (
+    <ul className="list-block">
+      {reasons.map((reason) => (
+        <li key={reason}>{reason}</li>
+      ))}
+    </ul>
+  );
 }
 
 export default async function OpportunityDetailPage({
@@ -26,152 +54,240 @@ export default async function OpportunityDetailPage({
     notFound();
   }
 
-  const positiveReasons = opportunity.scoring.reasoning.concat(opportunity.offer.reasoning);
-  const negativeReasons = opportunity.visibility.suppressionReasons.concat(opportunity.decision.notes);
+  const relatedAlerts = isDatabaseConfigured()
+    ? await alertService.listRelatedAlerts(opportunity.listingRaw.id, opportunity.profile.id)
+    : [];
+  const inspection = opportunity.inspection;
+  const totalPrice = opportunity.listingNormalized.totalAcquisitionCost;
+  const brand = normalizeIdentityValue(opportunity.classification.brand, ["generic", "unknown-brand"]);
+  const model = normalizeIdentityValue(opportunity.classification.model, ["unspecified", "unknown-model"]);
 
   return (
-    <div className="detail-grid">
-      <SectionCard title={opportunity.listingRaw.title} subtitle={opportunity.profile.name}>
-        <div className="chips" style={{ marginBottom: 18 }}>
-          <DecisionBadge status={opportunity.decision.status} />
-          <span className="chip">{opportunity.classification.brand || "unknown-brand"}</span>
-          <span className="chip">{opportunity.classification.model || "unknown-model"}</span>
-          {opportunity.listingNormalized.itemType !== "STANDARD" ? (
-            <span className="chip">{opportunity.listingNormalized.itemType.toLowerCase()}</span>
-          ) : null}
-          <span className="chip">{opportunity.listingRaw.condition}</span>
-          <span className="chip">{opportunity.visibility.visibilityLevel}</span>
-        </div>
-        <div className="kpi">
-          <span>Profile</span>
-          <strong>{opportunity.profile.name}</strong>
-        </div>
-        <div className="kpi">
-          <span>uiScore</span>
-          <strong>{opportunity.scoring.totalScore}</strong>
-        </div>
-        <div className="kpi">
-          <span>Precio listado</span>
-          <strong>${opportunity.listingRaw.price}</strong>
-        </div>
-        <div className="kpi">
-          <span>Envio</span>
-          <strong>${opportunity.listingRaw.shippingCost}</strong>
-        </div>
-        <div className="kpi">
-          <span>Resale esperado</span>
-          <strong>${opportunity.decision.expectedResale}</strong>
-        </div>
-        <div className="kpi">
-          <span>Margen esperado</span>
-          <strong>${opportunity.decision.expectedMargin}</strong>
-        </div>
-        <div className="kpi">
-          <span>Recommended offer</span>
-          <strong>{formatCurrency(opportunity.offer.recommendedOffer)}</strong>
-        </div>
-        <div style={{ marginTop: 20, display: "grid", gap: 16 }}>
-          <div>
-            <h3 style={{ marginBottom: 8 }}>Classification</h3>
-            <ul>
-              <li>Brand: {opportunity.classification.brand || "unknown-brand"}</li>
-              <li>Model: {opportunity.classification.model || "unknown-model"}</li>
-              <li>Confidence: {opportunity.classification.confidence}</li>
-              <li>Special item type: {opportunity.listingNormalized.itemType.toLowerCase()}</li>
-            </ul>
+    <div className="grid" style={{ gap: 20 }}>
+      <SectionCard title={opportunity.listingRaw.title} subtitle={`Perfil ${opportunity.profile.name}`}>
+        <div className="split-row" style={{ alignItems: "flex-start" }}>
+          <div className="chips">
+            <DecisionBadge status={opportunity.decision.status} />
+            <span className="chip">{humanizeToken(opportunity.listingRaw.marketplace)}</span>
+            <span className="chip">{humanizeToken(opportunity.visibility.visibilityLevel)}</span>
+            <span className="chip">{humanizeToken(inspection?.listingState)}</span>
           </div>
-          <div>
-            <h3 style={{ marginBottom: 8 }}>Reasons positivas</h3>
-            <ul>
-              {positiveReasons.length > 0 ? positiveReasons.map((reason) => <li key={reason}>{reason}</li>) : <li>Sin razones registradas.</li>}
-            </ul>
+          <div className="metric-chip">
+            <span className="metric-label">uiScore</span>
+            <strong>{formatText(inspection?.uiScore ?? opportunity.scoring.totalScore)}</strong>
           </div>
         </div>
       </SectionCard>
 
-      <div className="grid" style={{ gap: 20 }}>
-        <SectionCard title="Visibility y scoring">
-          <div className="kpi">
-            <span>Visibility</span>
-            <strong>{opportunity.visibility.visibilityLevel}</strong>
-          </div>
-          <div className="kpi">
-            <span>Total</span>
-            <strong>{opportunity.scoring.totalScore}</strong>
-          </div>
-          <div className="kpi">
-            <span>Precio</span>
-            <strong>{opportunity.scoring.priceScore}</strong>
-          </div>
-          <div className="kpi">
-            <span>Demanda</span>
-            <strong>{opportunity.scoring.demandScore}</strong>
-          </div>
-          <div className="kpi">
-            <span>Trust</span>
-            <strong>{opportunity.scoring.trustScore}</strong>
-          </div>
-          <div className="kpi">
-            <span>Fit</span>
-            <strong>{opportunity.scoring.fitScore}</strong>
-          </div>
-          <div className="kpi">
-            <span>Risk penalty</span>
-            <strong>{opportunity.scoring.riskPenalty}</strong>
-          </div>
-          <div className="kpi">
-            <span>Confidence penalty</span>
-            <strong>{opportunity.scoring.confidencePenalty}</strong>
-          </div>
-        </SectionCard>
+      <div className="detail-grid">
+        <div className="grid" style={{ gap: 20 }}>
+          <SectionCard title="Identificacion del listing">
+            <div className="field-grid">
+              <div className="field-card field-card-wide">
+                <span className="field-label">Title</span>
+                <strong className="field-value">{opportunity.listingRaw.title}</strong>
+              </div>
+              <div className="field-card">
+                <span className="field-label">Brand</span>
+                <strong className="field-value">{brand}</strong>
+              </div>
+              <div className="field-card">
+                <span className="field-label">Model</span>
+                <strong className="field-value">{model}</strong>
+              </div>
+              <div className="field-card">
+                <span className="field-label">Profile</span>
+                <strong className="field-value">{opportunity.profile.name}</strong>
+              </div>
+              <div className="field-card">
+                <span className="field-label">Source</span>
+                <strong className="field-value">{humanizeToken(opportunity.listingRaw.marketplace)}</strong>
+              </div>
+              <div className="field-card">
+                <span className="field-label">Precio total</span>
+                <strong className="field-value">{formatCurrency(totalPrice, opportunity.listingRaw.currency)}</strong>
+              </div>
+              <div className="field-card">
+                <span className="field-label">Precio listado</span>
+                <strong className="field-value">{formatCurrency(opportunity.listingRaw.price, opportunity.listingRaw.currency)}</strong>
+              </div>
+              <div className="field-card">
+                <span className="field-label">Actualizado</span>
+                <strong className="field-value">{formatDateTime(inspection?.updatedAt ?? opportunity.listingRaw.scrapedAt)}</strong>
+              </div>
+            </div>
+          </SectionCard>
 
-        <SectionCard title="Decision y offer recommendation">
-          <div className="kpi">
-            <span>Decision</span>
-            <strong>{opportunity.decision.status}</strong>
-          </div>
-          <div className="kpi">
-            <span>Decision confidence</span>
-            <strong>{opportunity.decision.confidence}</strong>
-          </div>
-          <div className="kpi">
-            <span>Offer strategy</span>
-            <strong>{opportunity.offer.offerStrategy}</strong>
-          </div>
-          <div className="kpi">
-            <span>Anchor</span>
-            <strong>{formatCurrency(opportunity.offer.anchorOffer)}</strong>
-          </div>
-          <div className="kpi">
-            <span>Recommended</span>
-            <strong>{formatCurrency(opportunity.offer.recommendedOffer)}</strong>
-          </div>
-          <div className="kpi">
-            <span>Walk-away</span>
-            <strong>{formatCurrency(opportunity.offer.walkAwayPrice)}</strong>
-          </div>
-          <div className="kpi">
-            <span>Offer confidence</span>
-            <strong>{opportunity.offer.offerConfidence}</strong>
-          </div>
-          <div>
-            <h3 style={{ marginBottom: 8 }}>Reasons negativas</h3>
-            <ul>
-              {negativeReasons.length > 0 ? negativeReasons.map((reason) => <li key={reason}>{reason}</li>) : <li>Sin razones registradas.</li>}
-            </ul>
-          </div>
-          {opportunity.alerts.length > 0 ? (
-            <ul>
-              {opportunity.alerts.map((alert) => (
-                <li key={alert.id}>{alert.message}</li>
-              ))}
-            </ul>
-          ) : (
-            <p className="muted" style={{ margin: 0 }}>
-              Sin alertas registradas.
-            </p>
-          )}
-        </SectionCard>
+          <SectionCard title="Clasificacion">
+            <div className="field-grid">
+              <div className="field-card">
+                <span className="field-label">Listing state</span>
+                <strong className="field-value">{humanizeToken(inspection?.listingState)}</strong>
+              </div>
+              <div className="field-card">
+                <span className="field-label">Special item type</span>
+                <strong className="field-value">{humanizeToken(inspection?.specialItemType)}</strong>
+              </div>
+              <div className="field-card">
+                <span className="field-label">Visibility level</span>
+                <strong className="field-value">{humanizeToken(opportunity.visibility.visibilityLevel)}</strong>
+              </div>
+              <div className="field-card">
+                <span className="field-label">Comparable match confidence</span>
+                <strong className="field-value">{formatPercent(inspection?.comparableMatchConfidence)}</strong>
+              </div>
+              <div className="field-card">
+                <span className="field-label">Profile compatibility</span>
+                <strong className="field-value">{formatPercent(inspection?.profileCompatibility)}</strong>
+              </div>
+              <div className="field-card">
+                <span className="field-label">Clasificacion confidence</span>
+                <strong className="field-value">{formatPercent(opportunity.classification.confidence)}</strong>
+              </div>
+            </div>
+          </SectionCard>
+
+          <SectionCard title="Razones">
+            <div className="grid grid-2">
+              <div>
+                <p className="section-kicker">driversPositive</p>
+                {renderReasonList(inspection?.driversPositive ?? [], "No hay drivers positivos registrados.")}
+              </div>
+              <div>
+                <p className="section-kicker">driversNegative</p>
+                {renderReasonList(inspection?.driversNegative ?? [], "No hay drivers negativos registrados.")}
+              </div>
+            </div>
+          </SectionCard>
+        </div>
+
+        <div className="grid" style={{ gap: 20 }}>
+          <SectionCard title="Decision">
+            <div className="field-grid">
+              <div className="field-card">
+                <span className="field-label">Decision</span>
+                <strong className="field-value">{opportunity.decision.status}</strong>
+              </div>
+              <div className="field-card">
+                <span className="field-label">Decision confidence</span>
+                <strong className="field-value">{formatPercent(opportunity.decision.confidence)}</strong>
+              </div>
+              <div className="field-card">
+                <span className="field-label">Offer strategy</span>
+                <strong className="field-value">{humanizeToken(opportunity.offer.offerStrategy)}</strong>
+              </div>
+              <div className="field-card">
+                <span className="field-label">Anchor offer</span>
+                <strong className="field-value">{formatCurrency(opportunity.offer.anchorOffer, opportunity.listingRaw.currency)}</strong>
+              </div>
+              <div className="field-card">
+                <span className="field-label">Recommended offer</span>
+                <strong className="field-value">
+                  {formatCurrency(opportunity.offer.recommendedOffer, opportunity.listingRaw.currency)}
+                </strong>
+              </div>
+              <div className="field-card">
+                <span className="field-label">Walk away price</span>
+                <strong className="field-value">{formatCurrency(opportunity.offer.walkAwayPrice, opportunity.listingRaw.currency)}</strong>
+              </div>
+            </div>
+          </SectionCard>
+
+          <SectionCard title="Scoring">
+            <div className="field-grid">
+              <div className="field-card">
+                <span className="field-label">uiScore</span>
+                <strong className="field-value">{formatText(inspection?.uiScore ?? opportunity.scoring.totalScore)}</strong>
+              </div>
+              <div className="field-card">
+                <span className="field-label">rawScore</span>
+                <strong className="field-value">{formatText(inspection?.rawScore)}</strong>
+              </div>
+              <div className="field-card">
+                <span className="field-label">Price score</span>
+                <strong className="field-value">{formatText(opportunity.scoring.priceScore)}</strong>
+              </div>
+              <div className="field-card">
+                <span className="field-label">Demand score</span>
+                <strong className="field-value">{formatText(opportunity.scoring.demandScore)}</strong>
+              </div>
+              <div className="field-card">
+                <span className="field-label">Trust score</span>
+                <strong className="field-value">{formatText(opportunity.scoring.trustScore)}</strong>
+              </div>
+              <div className="field-card">
+                <span className="field-label">Fit score</span>
+                <strong className="field-value">{formatText(opportunity.scoring.fitScore)}</strong>
+              </div>
+              <div className="field-card">
+                <span className="field-label">Liquidity score</span>
+                <strong className="field-value">{formatText(opportunity.scoring.liquidityScore)}</strong>
+              </div>
+              <div className="field-card">
+                <span className="field-label">Risk penalty</span>
+                <strong className="field-value">{formatText(opportunity.scoring.riskPenalty)}</strong>
+              </div>
+              <div className="field-card">
+                <span className="field-label">Confidence penalty</span>
+                <strong className="field-value">{formatText(opportunity.scoring.confidencePenalty)}</strong>
+              </div>
+            </div>
+          </SectionCard>
+
+          <SectionCard title="Alertas relacionadas">
+            {relatedAlerts.length > 0 ? (
+              <div className="section-stack">
+                {relatedAlerts.map((alert) => (
+                  <article className="notice notice-info" key={alert.id}>
+                    <div className="split-row">
+                      <h3 className="notice-title">{alert.title}</h3>
+                      <span className="status-pill status-pill-muted">{humanizeToken(alert.severity)}</span>
+                    </div>
+                    <p className="compact-text">{alert.message}</p>
+                    <p className="muted compact-text">Creada: {formatDateTime(alert.createdAt)}</p>
+                  </article>
+                ))}
+              </div>
+            ) : opportunity.alerts.length > 0 ? (
+              <ul className="list-block">
+                {opportunity.alerts.map((alert) => (
+                  <li key={alert.id}>
+                    {humanizeToken(alert.severity)}: {alert.message}
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <div className="empty-state">
+                <p style={{ margin: 0 }}>No hay alertas relacionadas para esta oportunidad.</p>
+              </div>
+            )}
+          </SectionCard>
+
+          <SectionCard title="Contexto adicional">
+            <div className="field-grid">
+              <div className="field-card">
+                <span className="field-label">Seller rating</span>
+                <strong className="field-value">{formatText(opportunity.listingRaw.sellerRating)}</strong>
+              </div>
+              <div className="field-card">
+                <span className="field-label">Seller sales</span>
+                <strong className="field-value">{formatCount(opportunity.listingRaw.sellerSalesCount)}</strong>
+              </div>
+              <div className="field-card">
+                <span className="field-label">Location</span>
+                <strong className="field-value">{formatText(opportunity.listingRaw.location)}</strong>
+              </div>
+              <div className="field-card">
+                <span className="field-label">URL</span>
+                <strong className="field-value">
+                  <a href={opportunity.listingRaw.url} target="_blank" rel="noreferrer">
+                    Abrir listing
+                  </a>
+                </strong>
+              </div>
+            </div>
+          </SectionCard>
+        </div>
       </div>
     </div>
   );

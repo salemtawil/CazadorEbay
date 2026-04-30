@@ -14,18 +14,20 @@ import type {
   VisibilityAssessment,
   OfferPlan,
 } from "@/lib/modules/contracts";
+import { buildOpportunityInspection } from "@/lib/modules/opportunity-inspection";
 import type { OpportunityRepository } from "@/lib/server/fixture-repository";
 import { buildAlerts } from "@/lib/modules/alerts";
-import { normalizeListing } from "@/lib/modules/listings";
 import { warnOnce } from "@/lib/server/runtime-config";
 import {
   mapDecisionStatusToDomain,
   mapListingRowToDomain,
   mapMarketRowsToDomain,
   mapMarketRowToDomain,
+  mapListingStateToDomain,
   mapNormalizedRowToDomain,
   mapOfferStrategyToDomain,
   mapProfileRowToDomain,
+  mapSpecialItemTypeToDomain,
   mapVisibilityLevelToDomain,
 } from "@/lib/server/prisma-domain-mappers";
 
@@ -170,6 +172,7 @@ function buildPersistedEvaluationResult(evaluation: PersistedEvaluationRow): Eva
   const payload = parseEvaluationJson<{
     listingNormalized?: import("@/lib/modules/contracts").ListingNormalized;
     market?: MarketSnapshot;
+    inspection?: import("@/lib/modules/contracts").OpportunityInspection;
   }>(evaluation.evaluationJson);
   const listingNormalized = payload?.listingNormalized ?? mapNormalizedRowToDomain(evaluation.listingRaw.normalized, listingRaw);
   const profile = mapProfileRowToDomain(evaluation.searchProfile);
@@ -191,6 +194,35 @@ function buildPersistedEvaluationResult(evaluation: PersistedEvaluationRow): Eva
   const decision = buildPersistedDecision(evaluation);
   const offer = buildPersistedOffer(evaluation);
   const alerts = buildPersistedAlerts(evaluation, listingRaw, classification, scoring, visibility, decision);
+  const inspection =
+    payload?.inspection ??
+    buildOpportunityInspection(
+      {
+        listingRaw,
+        listingNormalized,
+        classification,
+        visibility,
+        scoring,
+        decision,
+        offer,
+      },
+      {
+        listingState: mapListingStateToDomain(evaluation.listingState),
+        specialItemType: mapSpecialItemTypeToDomain(evaluation.specialItemType),
+        comparableMatchConfidence:
+          evaluation.comparableMatchConfidence === null ? undefined : Number(evaluation.comparableMatchConfidence),
+        profileCompatibility: evaluation.profileCompatibility === null ? undefined : Number(evaluation.profileCompatibility),
+        rawScore: evaluation.rawScore === null ? undefined : Number(evaluation.rawScore),
+        uiScore: evaluation.uiScore === null ? undefined : Number(evaluation.uiScore),
+        driversPositive: Array.isArray(evaluation.driversPositiveJson)
+          ? (evaluation.driversPositiveJson as string[])
+          : scoring.reasoning.concat(offer.reasoning),
+        driversNegative: Array.isArray(evaluation.driversNegativeJson)
+          ? (evaluation.driversNegativeJson as string[])
+          : visibility.suppressionReasons.concat(decision.notes),
+        updatedAt: evaluation.updatedAt.toISOString(),
+      },
+    );
 
   return {
     id: `${listingRaw.id}:${profile.id}`,
@@ -204,6 +236,7 @@ function buildPersistedEvaluationResult(evaluation: PersistedEvaluationRow): Eva
     decision,
     offer,
     alerts,
+    inspection,
   };
 }
 

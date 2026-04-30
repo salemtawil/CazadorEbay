@@ -58,6 +58,14 @@ export function shouldUseFixtureData(): boolean {
   return enabled;
 }
 
+export function isEbayEnabled(): boolean {
+  return readBooleanEnv("EBAY_ENABLED", false);
+}
+
+export function isCronSecretConfigured(): boolean {
+  return Boolean(process.env.CRON_SECRET?.trim());
+}
+
 export function shouldAllowFixtureFallback(): boolean {
   return !isProductionRuntime();
 }

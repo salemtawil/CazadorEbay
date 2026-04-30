@@ -66,6 +66,33 @@ export class AlertService {
     return rows.map(mapAlertRowToDomain);
   }
 
+  async listRelatedAlerts(listingRawId: string, searchProfileId: string): Promise<InternalAlert[]> {
+    const rows = await prisma.alert.findMany({
+      include: {
+        listingRaw: {
+          select: {
+            title: true,
+          },
+        },
+        searchProfile: {
+          select: {
+            name: true,
+          },
+        },
+      },
+      where: {
+        listingRawId,
+        searchProfileId,
+      },
+      orderBy: {
+        createdAt: "desc",
+      },
+      take: 20,
+    });
+
+    return rows.map(mapAlertRowToDomain);
+  }
+
   async markRead(alertId: string): Promise<boolean> {
     const result = await prisma.alert.updateMany({
       where: {

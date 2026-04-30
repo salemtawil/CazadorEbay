@@ -29,6 +29,7 @@ export default function RootLayout({ children }: Readonly<{ children: ReactNode 
                 <Link href="/profiles">Perfiles</Link>
                 <Link href="/opportunities">Oportunidades</Link>
                 <Link href={"/alerts" as Route}>Alertas</Link>
+                <Link href={"/system" as Route}>Sistema</Link>
               </nav>
             </div>
           </header>
