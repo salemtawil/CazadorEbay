@@ -26,24 +26,24 @@ export function AlertsList({ alerts }: { alerts: InternalAlert[] }) {
   }
 
   if (alerts.length === 0) {
-    return <p className="muted" style={{ margin: 0 }}>No hay alertas internas activas.</p>;
+    return <p className="muted m-0">No hay alertas internas activas.</p>;
   }
 
   return (
     <div className="list">
       {alerts.map((alert) => (
-        <article key={alert.id} className="row" style={{ alignItems: "flex-start" }}>
-          <div style={{ flex: 1 }}>
-            <p className="muted" style={{ margin: 0 }}>
+        <article key={alert.id} className="row row-start">
+          <div className="grow">
+            <p className="muted m-0">
               {alert.alertType} · {alert.severity} · {alert.readAt ? "leida" : "no leida"}
             </p>
             <h3 style={{ margin: "8px 0 6px" }}>{alert.title}</h3>
             <p style={{ margin: "0 0 8px" }}>{alert.message}</p>
-            <p className="muted" style={{ margin: 0 }}>
+            <p className="muted m-0">
               Listing: {alert.listingTitle} · Perfil: {alert.profileName} · {new Date(alert.createdAt).toLocaleString("es-VE")}
             </p>
           </div>
-          <div style={{ display: "grid", gap: 8, minWidth: 120 }}>
+          <div className="actions-grid">
             <button
               type="button"
               disabled={isPending || Boolean(alert.readAt)}

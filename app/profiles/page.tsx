@@ -147,7 +147,7 @@ export default async function ProfilesPage() {
         </div>
       ) : (
         <div className="empty-state">
-          <p style={{ margin: 0 }}>No hay SearchProfile cargados todavia.</p>
+          <p className="m-0">No hay SearchProfile cargados todavia.</p>
         </div>
       )}
     </SectionCard>

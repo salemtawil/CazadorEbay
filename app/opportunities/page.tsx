@@ -17,7 +17,7 @@ export default async function OpportunitiesPage() {
           ))}
         </div>
       ) : (
-        <p className="muted" style={{ margin: 0 }}>
+        <p className="muted m-0">
           No hay oportunidades visibles con el dataset actual.
         </p>
       )}

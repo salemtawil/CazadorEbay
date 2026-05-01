@@ -12,7 +12,7 @@ export default async function DashboardPage() {
   const top = opportunities.slice(0, 4);
 
   return (
-    <div className="grid" style={{ gap: 24 }}>
+    <div className="grid stack-gap-lg">
       <div className="grid grid-4">
         <StatCard label="Perfiles activos" value={String(metrics.activeProfiles)} hint="Tres verticales concretas." />
         <StatCard label="Listings evaluados" value={String(metrics.evaluatedListings)} hint="Pipeline evaluado desde el catalogo activo." />
@@ -28,7 +28,7 @@ export default async function DashboardPage() {
             ))}
           </div>
         ) : (
-          <p className="muted" style={{ margin: 0 }}>
+          <p className="muted m-0">
             No hay oportunidades visibles con los datos disponibles.
           </p>
         )}

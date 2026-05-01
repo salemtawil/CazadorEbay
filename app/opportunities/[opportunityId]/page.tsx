@@ -28,7 +28,7 @@ function renderReasonList(reasons: string[], emptyLabel: string) {
   if (reasons.length === 0) {
     return (
       <div className="empty-state">
-        <p style={{ margin: 0 }}>{emptyLabel}</p>
+        <p className="m-0">{emptyLabel}</p>
       </div>
     );
   }
@@ -63,9 +63,9 @@ export default async function OpportunityDetailPage({
   const model = normalizeIdentityValue(opportunity.classification.model, ["unspecified", "unknown-model"]);
 
   return (
-    <div className="grid" style={{ gap: 20 }}>
+    <div className="grid">
       <SectionCard title={opportunity.listingRaw.title} subtitle={`Perfil ${opportunity.profile.name}`}>
-        <div className="split-row" style={{ alignItems: "flex-start" }}>
+        <div className="split-row row-start">
           <div className="chips">
             <DecisionBadge status={opportunity.decision.status} />
             <span className="chip">{humanizeToken(opportunity.listingRaw.marketplace)}</span>
@@ -80,7 +80,7 @@ export default async function OpportunityDetailPage({
       </SectionCard>
 
       <div className="detail-grid">
-        <div className="grid" style={{ gap: 20 }}>
+        <div className="grid">
           <SectionCard title="Identificacion del listing">
             <div className="field-grid">
               <div className="field-card field-card-wide">
@@ -161,7 +161,7 @@ export default async function OpportunityDetailPage({
           </SectionCard>
         </div>
 
-        <div className="grid" style={{ gap: 20 }}>
+        <div className="grid">
           <SectionCard title="Decision">
             <div className="field-grid">
               <div className="field-card">
@@ -258,7 +258,7 @@ export default async function OpportunityDetailPage({
               </ul>
             ) : (
               <div className="empty-state">
-                <p style={{ margin: 0 }}>No hay alertas relacionadas para esta oportunidad.</p>
+                <p className="m-0">No hay alertas relacionadas para esta oportunidad.</p>
               </div>
             )}
           </SectionCard>

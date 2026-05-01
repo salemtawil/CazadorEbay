@@ -10,7 +10,7 @@ export default async function SystemPage() {
   const status = await systemService.getStatus();
 
   return (
-    <div className="grid" style={{ gap: 24 }}>
+    <div className="grid stack-gap-lg">
       <div className="grid grid-4">
         <StatCard label="ListingRaw" value={formatCount(status.listingRawCount)} hint="Registros crudos persistidos." />
         <StatCard label="ListingNormalized" value={formatCount(status.listingNormalizedCount)} hint="Listings normalizados en DB." />
@@ -71,13 +71,13 @@ export default async function SystemPage() {
           </div>
         ) : (
           <div className="empty-state">
-            <p style={{ margin: 0 }}>No hay observaciones operativas adicionales con los datos actuales.</p>
+            <p className="m-0">No hay observaciones operativas adicionales con los datos actuales.</p>
           </div>
         )}
 
         {!status.hasData ? (
-          <div className="empty-state" style={{ marginTop: 16 }}>
-            <p style={{ margin: 0 }}>La base esta vacia o el runtime no puede leer datos persistidos todavia.</p>
+          <div className="empty-state mt-16">
+            <p className="m-0">La base esta vacia o el runtime no puede leer datos persistidos todavia.</p>
           </div>
         ) : null}
       </SectionCard>

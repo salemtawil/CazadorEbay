@@ -33,7 +33,7 @@ export function OpportunityCard({
     <div className="row">
       <div>
         <Link href={`/opportunities/${encodeURIComponent(opportunity.id)}`}>
-          <h3 style={{ margin: 0 }}>{opportunity.listingRaw.title}</h3>
+          <h3 className="m-0">{opportunity.listingRaw.title}</h3>
         </Link>
         <p className="muted" style={{ margin: "6px 0 0" }}>
           {opportunity.profile.name} - {opportunity.visibility.visibilityLevel} - uiScore {getUiScore(opportunity)}
@@ -46,7 +46,7 @@ export function OpportunityCard({
           {specialItemType ? ` - ${specialItemType}` : ""}
         </p>
       </div>
-      <div style={{ minWidth: compact ? 140 : 180, textAlign: "right" }}>
+      <div className="text-right" style={{ minWidth: compact ? 140 : 180 }}>
         <DecisionBadge status={opportunity.decision.status} />
         <p style={{ margin: "8px 0 0", fontWeight: 600 }}>{getUiScore(opportunity)}</p>
         <p className="muted" style={{ margin: "6px 0 0" }}>
@@ -56,4 +56,3 @@ export function OpportunityCard({
     </div>
   );
 }
-
