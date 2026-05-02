@@ -40,7 +40,8 @@ function mapAlertRowToDomain(
 }
 
 export class AlertService {
-  async listAlerts(): Promise<InternalAlert[]> {
+  async listAlerts(options: { includeDismissed?: boolean; take?: number } = {}): Promise<InternalAlert[]> {
+    const { includeDismissed = false, take = 100 } = options;
     const rows = await prisma.alert.findMany({
       include: {
         listingRaw: {
@@ -54,13 +55,11 @@ export class AlertService {
           },
         },
       },
-      where: {
-        dismissedAt: null,
-      },
+      where: includeDismissed ? undefined : { dismissedAt: null },
       orderBy: {
         createdAt: "desc",
       },
-      take: 100,
+      take,
     });
 
     return rows.map(mapAlertRowToDomain);
