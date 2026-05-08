@@ -42,7 +42,10 @@ export function OpportunityCard({
   const specialItemType = getOpportunitySpecialItemType(opportunity);
   const summary = buildOpportunityShortSummary(opportunity);
   const listingUrl = getOpportunityListingUrl(opportunity);
-  const detailHref = `/opportunities/${opportunity.id}`;
+  const detailHref = {
+    pathname: "/opportunities/[opportunityId]",
+    query: { opportunityId: opportunity.id },
+  } as const;
     
   const visibilityLabel = getOpportunityVisibilityLabel(opportunity.visibility.visibilityLevel);
   const totalPrice = formatCurrency(getOpportunityTotalPrice(opportunity), opportunity.listingRaw.currency);
@@ -65,8 +68,8 @@ export function OpportunityCard({
         </div>
 
         <Link href={detailHref}>
-		  <h3 className="opportunity-card-title">{opportunity.listingRaw.title}</h3>
-		</Link>
+          <h3 className="opportunity-card-title">{opportunity.listingRaw.title}</h3>
+        </Link>
 
         <div className="opportunity-card-meta">
           <span>Perfil: {opportunity.profile.name}</span>
