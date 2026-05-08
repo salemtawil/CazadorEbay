@@ -22,7 +22,7 @@ describe("profile presentation", () => {
 
     expect(summary).toContain("Busca ram ddr4, 32gb y 1 mas");
     expect(summary).toContain("excluye ecc y server");
-    expect(summary).toContain("modo comprador");
+    expect(summary).toContain("modo comprar para usar");
     expect(summary).toContain("riesgo bajo");
     expect(summary).toContain("filtrado estricto");
   });

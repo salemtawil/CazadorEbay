@@ -28,7 +28,10 @@ export default async function OpportunitiesPage({
     .sort((left, right) => left.label.localeCompare(right.label));
 
   return (
-    <SectionCard title="Oportunidades" subtitle="Vista de trabajo para priorizar compra, negociacion o descarte.">
+    <SectionCard
+      title="Oportunidades"
+      subtitle="La pantalla principal para decidir rapido que comprar, por que conviene y que hacer ahora."
+    >
       <OpportunityFiltersForm
         filters={filters}
         profileOptions={profileOptions}
@@ -45,7 +48,7 @@ export default async function OpportunitiesPage({
         </div>
       ) : (
         <div className="empty-state">
-          <p className="m-0">No hay oportunidades para los filtros actuales. Prueba limpiarlos o ampliar el rango.</p>
+          <p className="m-0">No hay oportunidades para los filtros actuales. Prueba limpiar filtros o abrir la vista de ocultas.</p>
         </div>
       )}
     </SectionCard>

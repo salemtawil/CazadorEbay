@@ -8,7 +8,7 @@ import "./globals.css";
 
 export const metadata: Metadata = {
   title: "CazadorEbay",
-  description: "Marketplace intelligence con Next.js, Prisma y Supabase Postgres.",
+  description: "Herramienta para detectar oportunidades de compra en eBay con recomendaciones claras.",
 };
 
 export default function RootLayout({ children }: Readonly<{ children: ReactNode }>) {
@@ -22,22 +22,25 @@ export default function RootLayout({ children }: Readonly<{ children: ReactNode 
           <header className="hero">
             <div>
               <p className="eyebrow">CazadorEbay</p>
-              <h1>Encuentra listings con margen antes de perder tiempo en evaluarlos a mano.</h1>
+              <h1>Detecta rapido que vale la pena comprar, por que y que hacer ahora.</h1>
             </div>
             <div className="hero-actions">
               <p>
-                Web app full-stack con arquitectura modular monolith, pipeline de evaluacion,
-                fixtures para iteracion rapida y persistencia lista para Supabase Postgres en Vercel.
+                La app prioriza oportunidades accionables, cambios importantes y busquedas claras. Lo tecnico sigue ahi, pero en segunda capa.
               </p>
               <div className="toolbar">
                 <nav className="nav">
-                  <Link href="/">Dashboard</Link>
-                  <Link href="/profiles">Perfiles</Link>
+                  <Link href="/">Hoy</Link>
                   <Link href="/opportunities">Oportunidades</Link>
-                  <Link href={"/alerts" as Route}>Alertas</Link>
-                  <Link href={"/system" as Route}>Sistema</Link>
+                  <Link href="/alerts">Cambios</Link>
+                  <Link href="/profiles">Mis busquedas</Link>
                 </nav>
-                <ThemeToggle />
+                <div className="toolbar-side">
+                  <nav className="nav nav-secondary">
+                    <Link href={"/system" as Route}>Panel tecnico</Link>
+                  </nav>
+                  <ThemeToggle />
+                </div>
               </div>
             </div>
           </header>

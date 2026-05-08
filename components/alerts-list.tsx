@@ -4,6 +4,9 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useTransition } from "react";
 import {
+  getAlertHeadline,
+  getAlertImportanceSummary,
+  getAlertNextStep,
   getAlertOpportunityId,
   getAlertSeverityLabel,
   getAlertState,
@@ -31,7 +34,7 @@ function getSeverityToneClass(severity: InternalAlert["severity"]): string {
     return "status-pill-warning";
   }
 
-  return "status-pill-muted";
+  return "status-pill-info";
 }
 
 function getStateToneClass(alert: InternalAlert): string {
@@ -48,7 +51,7 @@ function getStateToneClass(alert: InternalAlert): string {
 
 export function AlertsList({
   alerts,
-  emptyMessage = "No hay alertas para esta vista.",
+  emptyMessage = "No hay cambios para esta vista.",
 }: {
   alerts: InternalAlert[];
   emptyMessage?: string;
@@ -90,13 +93,22 @@ export function AlertsList({
                 <p className="muted compact-text">{new Date(alert.createdAt).toLocaleString("es-VE")}</p>
               </div>
 
-              <h3 className="alert-card-title">{alert.title}</h3>
-              <p className="compact-text">{alert.message}</p>
+              <h3 className="alert-card-title">{getAlertHeadline(alert)}</h3>
+              <p className="compact-text">{getAlertImportanceSummary(alert)}</p>
+
+              <div className="field-card field-card-wide">
+                <span className="field-label">Que cambio</span>
+                <strong className="field-value">{alert.message}</strong>
+              </div>
 
               <div className="alert-card-meta">
-                <span>Listing: {alert.listingTitle || "Sin titulo"}</span>
-                <span>Perfil: {alert.profileName || "Sin perfil"}</span>
+                <span>Producto: {alert.listingTitle || "Sin titulo"}</span>
+                <span>Busqueda: {alert.profileName || "Sin perfil"}</span>
               </div>
+
+              <p className="compact-text">
+                <strong>Que deberias mirar:</strong> {getAlertNextStep(alert)}
+              </p>
             </div>
 
             <div className="actions-grid">
@@ -105,7 +117,7 @@ export function AlertsList({
                   pathname: "/opportunities/[opportunityId]",
                   query: { opportunityId: getAlertOpportunityId(alert) },
                 }}
-                className="button-link button-link-secondary"
+                className="button-link"
               >
                 Ver oportunidad
               </Link>
@@ -121,7 +133,7 @@ export function AlertsList({
                 disabled={isPending || Boolean(alert.dismissedAt)}
                 onClick={() => runAction(`/api/alerts/${alert.id}/dismiss`)}
               >
-                {alert.dismissedAt ? "Descartada" : "Descartar"}
+                {alert.dismissedAt ? "Descartada" : "Ocultar"}
               </button>
             </div>
           </article>

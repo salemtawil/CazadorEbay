@@ -50,12 +50,12 @@ export function OpportunityFiltersForm({
               type="search"
               name="q"
               defaultValue={filters.query}
-              placeholder="Titulo, brand, model o perfil"
+              placeholder="Producto, marca, modelo o busqueda"
             />
           </label>
 
           <label className="control-field">
-            <span className="field-label">Decision</span>
+            <span className="field-label">Recomendacion</span>
             <select className="control-input" name="decision" defaultValue={filters.decision}>
               {OPPORTUNITY_DECISION_OPTIONS.map((option) => (
                 <option key={option.value} value={option.value}>
@@ -66,7 +66,7 @@ export function OpportunityFiltersForm({
           </label>
 
           <label className="control-field">
-            <span className="field-label">Visibilidad</span>
+            <span className="field-label">Vista tecnica</span>
             <select className="control-input" name="visibility" defaultValue={filters.visibilityLevel}>
               {OPPORTUNITY_VISIBILITY_OPTIONS.map((option) => (
                 <option key={option.value} value={option.value}>
@@ -77,7 +77,7 @@ export function OpportunityFiltersForm({
           </label>
 
           <label className="control-field">
-            <span className="field-label">Tipo especial</span>
+            <span className="field-label">Tipo de articulo</span>
             <select className="control-input" name="specialItemType" defaultValue={filters.specialItemType}>
               {OPPORTUNITY_SPECIAL_ITEM_OPTIONS.map((option) => (
                 <option key={option.value} value={option.value}>
@@ -100,7 +100,7 @@ export function OpportunityFiltersForm({
           </label>
 
           <label className="control-field">
-            <span className="field-label">Source</span>
+            <span className="field-label">Origen</span>
             <select className="control-input" name="source" defaultValue={filters.source}>
               <option value="">Todas las fuentes</option>
               {sourceOptions.map((source) => (
@@ -112,7 +112,7 @@ export function OpportunityFiltersForm({
           </label>
 
           <label className="control-field">
-            <span className="field-label">uiScore minimo</span>
+            <span className="field-label">Prioridad minima</span>
             <input
               className="control-input"
               type="number"
@@ -125,7 +125,7 @@ export function OpportunityFiltersForm({
           </label>
 
           <label className="control-field">
-            <span className="field-label">uiScore maximo</span>
+            <span className="field-label">Prioridad maxima</span>
             <input
               className="control-input"
               type="number"

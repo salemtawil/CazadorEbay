@@ -46,7 +46,7 @@ export function AlertsFiltersForm({
               type="search"
               name="q"
               defaultValue={filters.query}
-              placeholder="Titulo, mensaje, listing o perfil"
+              placeholder="Cambio, producto o busqueda"
             />
           </label>
 
@@ -73,7 +73,7 @@ export function AlertsFiltersForm({
           </label>
 
           <label className="control-field">
-            <span className="field-label">Estado</span>
+            <span className="field-label">Lectura</span>
             <select className="control-input" name="state" defaultValue={filters.state}>
               {ALERT_STATE_OPTIONS.map((option) => (
                 <option key={option.value} value={option.value}>

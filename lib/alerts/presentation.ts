@@ -37,10 +37,10 @@ const ALERT_SORT_VALUES = new Set<AlertSort>(["newest", "oldest", "severity"]);
 export const ALERT_TYPE_OPTIONS: Array<{ value: AlertFilters["alertType"]; label: string }> = [
   { value: "all", label: "Todos los tipos" },
   { value: "NEW_HIGH_SCORE_OPPORTUNITY", label: "Nueva oportunidad fuerte" },
-  { value: "PRICE_DROPPED", label: "Bajo de precio" },
-  { value: "DECISION_UPGRADED_TO_BUY_NOW", label: "Paso a comprar ahora" },
-  { value: "DECISION_UPGRADED_TO_MAKE_OFFER", label: "Paso a hacer oferta" },
-  { value: "NEW_LISTING_MATCHED_PROFILE", label: "Nuevo listing para perfil" },
+  { value: "PRICE_DROPPED", label: "Bajo el precio" },
+  { value: "DECISION_UPGRADED_TO_BUY_NOW", label: "Ahora conviene comprar" },
+  { value: "DECISION_UPGRADED_TO_MAKE_OFFER", label: "Ahora conviene ofertar" },
+  { value: "NEW_LISTING_MATCHED_PROFILE", label: "Nueva coincidencia para tu busqueda" },
 ];
 
 export const ALERT_SEVERITY_OPTIONS: Array<{ value: AlertFilters["severity"]; label: string }> = [
@@ -137,6 +137,52 @@ export function getAlertSeverityLabel(severity: AlertSeverity): string {
 
 export function getAlertOpportunityId(alert: InternalAlert): string {
   return `${alert.listingRawId}:${alert.searchProfileId}`;
+}
+
+export function getAlertHeadline(alert: InternalAlert): string {
+  switch (alert.alertType) {
+    case "NEW_HIGH_SCORE_OPPORTUNITY":
+      return "Nueva oportunidad fuerte detectada";
+    case "PRICE_DROPPED":
+      return "Bajo el precio";
+    case "DECISION_UPGRADED_TO_BUY_NOW":
+      return "Ahora recomienda comprar";
+    case "DECISION_UPGRADED_TO_MAKE_OFFER":
+      return "Ahora recomienda hacer oferta";
+    case "NEW_LISTING_MATCHED_PROFILE":
+      return "Nueva coincidencia para tu busqueda";
+    default:
+      return getAlertTypeLabel(alert.alertType);
+  }
+}
+
+export function getAlertImportanceSummary(alert: InternalAlert): string {
+  if (alert.severity === "critical") {
+    return "Importa mucho y conviene revisarla pronto.";
+  }
+
+  if (alert.severity === "warning") {
+    return "Puede cambiar tu decision de compra.";
+  }
+
+  return "Es un cambio util para mantener contexto.";
+}
+
+export function getAlertNextStep(alert: InternalAlert): string {
+  switch (alert.alertType) {
+    case "NEW_HIGH_SCORE_OPPORTUNITY":
+      return "Revisa la oportunidad y decide si compras o negocias hoy.";
+    case "PRICE_DROPPED":
+      return "Comprueba si el nuevo precio ya entra en tu rango razonable.";
+    case "DECISION_UPGRADED_TO_BUY_NOW":
+      return "Entra al detalle y valida si todavia conviene comprar ya.";
+    case "DECISION_UPGRADED_TO_MAKE_OFFER":
+      return "Entra al detalle y mira la oferta recomendada.";
+    case "NEW_LISTING_MATCHED_PROFILE":
+      return "Abre la oportunidad y confirma si encaja con tu busqueda.";
+    default:
+      return "Abre la oportunidad asociada para revisar el cambio.";
+  }
 }
 
 export function filterAlerts(alerts: InternalAlert[], filters: AlertFilters): InternalAlert[] {

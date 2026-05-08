@@ -28,6 +28,7 @@ export type OpportunitySpecialItemFilter =
   | "manual_only"
   | "ambiguous_bundle"
   | "mixed_lot";
+export type OpportunityRiskLevel = "low" | "medium" | "high";
 
 export interface OpportunityFilters {
   query: string;
@@ -92,29 +93,29 @@ const SORT_VALUES = new Set<OpportunitySort>([
 ]);
 
 export const OPPORTUNITY_DECISION_OPTIONS: Array<{ value: OpportunityDecisionFilter; label: string }> = [
-  { value: "all", label: "Todas las decisiones" },
-  { value: "buy_now", label: "Comprar ahora" },
+  { value: "all", label: "Todas las recomendaciones" },
+  { value: "buy_now", label: "Comprar ya" },
   { value: "make_offer", label: "Hacer oferta" },
-  { value: "watch", label: "Seguir" },
-  { value: "ignore", label: "Ignorar" },
-  { value: "restricted_watch", label: "Seguimiento restringido" },
+  { value: "watch", label: "Vigilar" },
+  { value: "ignore", label: "Descartar" },
+  { value: "restricted_watch", label: "Vigilar con cautela" },
 ];
 
 export const OPPORTUNITY_VISIBILITY_OPTIONS: Array<{
   value: OpportunityFilters["visibilityLevel"];
   label: string;
 }> = [
-  { value: "all", label: "Todas las visibilidades" },
-  { value: "primary_feed", label: "Feed principal" },
-  { value: "secondary_feed", label: "Feed secundario" },
+  { value: "all", label: "Todas" },
+  { value: "primary_feed", label: "Lista principal" },
+  { value: "secondary_feed", label: "Revision secundaria" },
   { value: "hidden", label: "Ocultas" },
 ];
 
 export const OPPORTUNITY_SPECIAL_ITEM_OPTIONS: Array<{ value: OpportunitySpecialItemFilter; label: string }> = [
-  { value: "all", label: "Todos los tipos especiales" },
-  { value: "none", label: "Sin bandera especial" },
+  { value: "all", label: "Todos los tipos" },
+  { value: "none", label: "Articulos normales" },
   { value: "replacement_part_only", label: "Solo repuesto" },
-  { value: "for_parts_not_working", label: "Para partes / no funciona" },
+  { value: "for_parts_not_working", label: "Para reparar / no funciona" },
   { value: "incomplete_item", label: "Incompleto" },
   { value: "accessory_only", label: "Solo accesorio" },
   { value: "box_only", label: "Solo caja" },
@@ -129,12 +130,12 @@ export const OPPORTUNITY_VISIBLE_OPTIONS: Array<{ value: OpportunityVisibleFilte
 ];
 
 export const OPPORTUNITY_SORT_OPTIONS: Array<{ value: OpportunitySort; label: string }> = [
-  { value: "ui_score_desc", label: "uiScore: mayor primero" },
-  { value: "ui_score_asc", label: "uiScore: menor primero" },
+  { value: "ui_score_desc", label: "Mejor encaje primero" },
   { value: "updated_desc", label: "Mas recientes" },
+  { value: "total_price_asc", label: "Mas baratas primero" },
+  { value: "total_price_desc", label: "Mas caras primero" },
+  { value: "ui_score_asc", label: "Menor prioridad" },
   { value: "updated_asc", label: "Mas antiguas" },
-  { value: "total_price_desc", label: "Precio total: mayor primero" },
-  { value: "total_price_asc", label: "Precio total: menor primero" },
 ];
 
 function parseEnumValue<T extends string>(rawValue: string | undefined, allowedValues: Set<T>, fallback: T): T {
@@ -185,23 +186,6 @@ function normalizeIdentityValue(value: string | undefined, fallbackTokens: strin
   }
 
   return fallbackTokens.includes(trimmed.toLowerCase()) ? null : trimmed;
-}
-
-function getOpportunityActionHeadline(decision: OpportunityDecisionFilter): string {
-  switch (decision) {
-    case "buy_now":
-      return "Conviene verla como compra inmediata.";
-    case "make_offer":
-      return "Vale la pena evaluarla para hacer una oferta.";
-    case "watch":
-      return "Tiene senales utiles para seguirla de cerca.";
-    case "restricted_watch":
-      return "Es interesante, pero requiere una revision mas cuidadosa.";
-    case "ignore":
-      return "No aparece como una compra clara por ahora.";
-    default:
-      return "Tiene senales para revisarla con criterio.";
-  }
 }
 
 function translateDiscountReason(reason: string): string | null {
@@ -272,21 +256,128 @@ function translateListingAgeReason(reason: string): string | null {
 function translateExpectedValueReason(reason: string, opportunity: EvaluationResult): string | null {
   const resaleMatch = reason.match(/^Expected resale net of fees: (-?\d+(?:\.\d+)?)$/i);
   if (resaleMatch) {
-    return `La reventa estimada despues de comisiones ronda ${formatCurrency(
-      Number(resaleMatch[1]),
-      opportunity.listingRaw.currency,
-    )}.`;
+    return `La reventa estimada despues de comisiones ronda ${formatCurrency(Number(resaleMatch[1]), opportunity.listingRaw.currency)}.`;
   }
 
   const marginMatch = reason.match(/^Expected gross margin before refurbishment: (-?\d+(?:\.\d+)?)$/i);
   if (marginMatch) {
-    return `El margen bruto estimado antes de reacondicionar ronda ${formatCurrency(
-      Number(marginMatch[1]),
-      opportunity.listingRaw.currency,
-    )}.`;
+    return `El margen bruto estimado antes de reacondicionar ronda ${formatCurrency(Number(marginMatch[1]), opportunity.listingRaw.currency)}.`;
   }
 
   return null;
+}
+
+function buildHeuristicReasons(opportunity: EvaluationResult): string[] {
+  const reasons: string[] = [];
+  const uiScore = getOpportunityUiScore(opportunity);
+  const decision = getOpportunityActionDecision(opportunity);
+  const discountRatio = getOpportunityDiscountRatio(opportunity);
+  const fitScore = opportunity.scoring.fitScore;
+  const riskPenalty = opportunity.scoring.riskPenalty + opportunity.scoring.confidencePenalty;
+
+  if (discountRatio >= 0.08) {
+    addUniqueMessage(reasons, "El precio total esta por debajo de lo normal para este tipo de producto.");
+  }
+
+  if (decision === "buy_now") {
+    addUniqueMessage(reasons, "La app ve una ventana clara para comprar antes de que se vaya.");
+  }
+
+  if (decision === "make_offer") {
+    addUniqueMessage(reasons, "Todavia hay espacio para negociar sin salirte del rango razonable.");
+  }
+
+  if (uiScore >= 80) {
+    addUniqueMessage(reasons, "Encaja muy bien con tu busqueda actual.");
+  } else if (uiScore >= 65) {
+    addUniqueMessage(reasons, "Encaja bastante bien y merece revision prioritaria.");
+  }
+
+  if (fitScore >= 75 || opportunity.classification.confidence >= opportunity.profile.minConfidence) {
+    addUniqueMessage(reasons, "Parece una coincidencia solida para lo que estas cazando.");
+  }
+
+  if (
+    getOpportunityTotalPrice(opportunity) <= (opportunity.market.p25Price ?? opportunity.market.medianPrice * 0.9) ||
+    discountRatio >= 0.15
+  ) {
+    addUniqueMessage(reasons, "El precio de entrada es atractivo frente a referencias comparables.");
+  }
+
+  if (riskPenalty <= 8) {
+    addUniqueMessage(reasons, "No arrastra penalizaciones fuertes de riesgo o confianza.");
+  }
+
+  if (opportunity.listingRaw.sellerRating >= 98) {
+    addUniqueMessage(reasons, "El vendedor tiene una reputacion fuerte.");
+  }
+
+  if (opportunity.offer.offerStrategy === "offer_now" && opportunity.listingRaw.bestOfferAvailable) {
+    addUniqueMessage(reasons, "Acepta ofertas, asi que puedes intentar mejorar el precio.");
+  }
+
+  return reasons;
+}
+
+function buildHeuristicRisks(opportunity: EvaluationResult): string[] {
+  const risks: string[] = [];
+  const decision = getOpportunityActionDecision(opportunity);
+  const specialItemType = getOpportunitySpecialItemType(opportunity);
+  const riskPenalty = opportunity.scoring.riskPenalty + opportunity.scoring.confidencePenalty;
+
+  if (decision === "restricted_watch") {
+    addUniqueMessage(risks, "Tiene senales buenas, pero no alcanza para ponerla arriba de todo.");
+  }
+
+  if (decision === "ignore") {
+    addUniqueMessage(risks, "Con el precio y riesgo actuales no se ve como una compra clara.");
+  }
+
+  if (specialItemType === "for_parts_not_working") {
+    addUniqueMessage(risks, "Es un articulo para reparar o sin funcionamiento confirmado.");
+  } else if (specialItemType === "replacement_part_only") {
+    addUniqueMessage(risks, "Es solo un repuesto y su utilidad es mas limitada.");
+  } else if (specialItemType === "incomplete_item") {
+    addUniqueMessage(risks, "Puede venir incompleto y afectar el valor real.");
+  } else if (specialItemType === "accessory_only") {
+    addUniqueMessage(risks, "Es un accesorio suelto, no el producto principal.");
+  } else if (specialItemType === "box_only") {
+    addUniqueMessage(risks, "Podria ser solo caja o empaque; revisa exactamente que incluye.");
+  } else if (specialItemType === "manual_only") {
+    addUniqueMessage(risks, "Podria ser solo manual o documentacion.");
+  } else if (specialItemType === "ambiguous_bundle" || specialItemType === "mixed_lot") {
+    addUniqueMessage(risks, "El lote o bundle no esta del todo claro y necesita revision manual.");
+  }
+
+  if (opportunity.visibility.visibilityLevel === "secondary_feed") {
+    addUniqueMessage(risks, "La app la bajo a revision secundaria por compatibilidad parcial o penalizaciones.");
+  }
+
+  if (opportunity.visibility.visibilityLevel === "hidden") {
+    addUniqueMessage(risks, "Quedo fuera de la vista principal por las reglas del perfil.");
+  }
+
+  if (opportunity.classification.confidence < opportunity.profile.minConfidence) {
+    addUniqueMessage(risks, "La identificacion del producto todavia no es del todo segura.");
+  }
+
+  if (riskPenalty >= 15) {
+    addUniqueMessage(risks, "La evaluacion detecta un nivel de riesgo alto para este perfil.");
+  }
+
+  if (!opportunity.listingRaw.returnsAccepted) {
+    addUniqueMessage(risks, "El vendedor no acepta devoluciones.");
+  }
+
+  if (opportunity.listingRaw.sellerRating < 96) {
+    addUniqueMessage(risks, "La reputacion del vendedor esta por debajo de lo ideal.");
+  }
+
+  if (!getOpportunityListingUrl(opportunity)) {
+    addUniqueMessage(risks, "No hay enlace original para revisar el anuncio con calma.");
+  }
+
+  return risks;
 }
 
 export function translateOpportunityReason(reason: string, opportunity: EvaluationResult): string | null {
@@ -343,9 +434,9 @@ export function translateOpportunityReason(reason: string, opportunity: Evaluati
     case "Condition risk reduces feed priority.":
       return "El estado del articulo reduce su prioridad.";
     case "Penalties were tolerated by the profile, so the listing stays in the primary feed.":
-      return "Aun con penalizaciones, el perfil la mantiene en el feed principal.";
+      return "Aun con penalizaciones, el perfil la mantiene en la lista principal.";
     case "Penalties reduced the listing to the secondary feed.":
-      return "Las penalizaciones la movieron al feed secundario.";
+      return "Las penalizaciones la movieron a una revision secundaria.";
     case "Eligible listings surface in the primary feed by default.":
       return null;
     case "Visibility rules kept this listing out of the actionable feeds.":
@@ -357,120 +448,6 @@ export function translateOpportunityReason(reason: string, opportunity: Evaluati
     default:
       return reason;
   }
-}
-
-function buildHeuristicReasons(opportunity: EvaluationResult): string[] {
-  const reasons: string[] = [];
-  const uiScore = getOpportunityUiScore(opportunity);
-  const totalPrice = getOpportunityTotalPrice(opportunity);
-  const decision = getOpportunityActionDecision(opportunity);
-  const discountRatio = getOpportunityDiscountRatio(opportunity);
-  const fitScore = opportunity.scoring.fitScore;
-  const riskPenalty = opportunity.scoring.riskPenalty + opportunity.scoring.confidencePenalty;
-
-  if (discountRatio >= 0.08) {
-    addUniqueMessage(reasons, "Esta por debajo del precio habitual del mercado.");
-  }
-
-  if (decision === "buy_now") {
-    addUniqueMessage(reasons, "La decision actual sugiere comprar ahora.");
-  }
-
-  if (decision === "make_offer") {
-    addUniqueMessage(reasons, "Hay margen para intentar una oferta razonable.");
-  }
-
-  if (uiScore >= 80) {
-    addUniqueMessage(reasons, "Tiene una puntuacion alta para este perfil.");
-  } else if (uiScore >= 65) {
-    addUniqueMessage(reasons, "Mantiene un puntaje competitivo para seguirla de cerca.");
-  }
-
-  if (fitScore >= 75 || opportunity.classification.confidence >= opportunity.profile.minConfidence) {
-    addUniqueMessage(reasons, "El producto parece encajar bien con el perfil de busqueda.");
-  }
-
-  if (
-    totalPrice <= (opportunity.market.p25Price ?? opportunity.market.medianPrice * 0.9) ||
-    discountRatio >= 0.15
-  ) {
-    addUniqueMessage(reasons, "Podria ser una buena oportunidad porque el precio total es bajo para este tipo de articulo.");
-  }
-
-  if (riskPenalty <= 8) {
-    addUniqueMessage(reasons, "Hay senales de riesgo bajo o moderado.");
-  }
-
-  if (opportunity.listingRaw.sellerRating >= 98) {
-    addUniqueMessage(reasons, "El vendedor tiene una reputacion solida.");
-  }
-
-  if (opportunity.offer.offerStrategy === "offer_now" && opportunity.listingRaw.bestOfferAvailable) {
-    addUniqueMessage(reasons, "Acepta ofertas y todavia hay espacio para negociar.");
-  }
-
-  return reasons;
-}
-
-function buildHeuristicRisks(opportunity: EvaluationResult): string[] {
-  const risks: string[] = [];
-  const decision = getOpportunityActionDecision(opportunity);
-  const specialItemType = getOpportunitySpecialItemType(opportunity);
-  const riskPenalty = opportunity.scoring.riskPenalty + opportunity.scoring.confidencePenalty;
-
-  if (decision === "restricted_watch") {
-    addUniqueMessage(risks, "Tiene senales interesantes, pero no queda en el feed principal.");
-  }
-
-  if (decision === "ignore") {
-    addUniqueMessage(risks, "La combinacion actual de precio, riesgo y visibilidad no la deja como una compra clara.");
-  }
-
-  if (specialItemType === "for_parts_not_working") {
-    addUniqueMessage(risks, "Es un articulo para partes o no funcional; conviene revisar bien el riesgo tecnico.");
-  } else if (specialItemType === "replacement_part_only") {
-    addUniqueMessage(risks, "Es un repuesto suelto, asi que su salida comercial es mas estrecha.");
-  } else if (specialItemType === "incomplete_item") {
-    addUniqueMessage(risks, "Parece un articulo incompleto y eso puede afectar su valor real.");
-  } else if (specialItemType === "accessory_only") {
-    addUniqueMessage(risks, "Es un accesorio suelto y puede tener menos margen o demanda.");
-  } else if (specialItemType === "box_only") {
-    addUniqueMessage(risks, "Parece ser solo caja o empaque; hay que validar exactamente que incluye.");
-  } else if (specialItemType === "manual_only") {
-    addUniqueMessage(risks, "Parece ser solo manual o documentacion; no es un articulo principal.");
-  } else if (specialItemType === "ambiguous_bundle" || specialItemType === "mixed_lot") {
-    addUniqueMessage(risks, "El bundle o lote no se ve del todo claro y puede requerir revision manual.");
-  }
-
-  if (opportunity.visibility.visibilityLevel === "secondary_feed") {
-    addUniqueMessage(risks, "Quedo en el feed secundario por penalizaciones o compatibilidad parcial.");
-  }
-
-  if (opportunity.visibility.visibilityLevel === "hidden") {
-    addUniqueMessage(risks, "Quedo oculta por las reglas de visibilidad del perfil.");
-  }
-
-  if (opportunity.classification.confidence < opportunity.profile.minConfidence) {
-    addUniqueMessage(risks, "La identificacion del producto todavia tiene una confianza limitada.");
-  }
-
-  if (riskPenalty >= 15) {
-    addUniqueMessage(risks, "El analisis detecta un nivel de riesgo alto para este perfil.");
-  }
-
-  if (!opportunity.listingRaw.returnsAccepted) {
-    addUniqueMessage(risks, "El vendedor no acepta devoluciones.");
-  }
-
-  if (opportunity.listingRaw.sellerRating < 96) {
-    addUniqueMessage(risks, "La reputacion del vendedor esta por debajo de lo ideal.");
-  }
-
-  if (!getOpportunityListingUrl(opportunity)) {
-    addUniqueMessage(risks, "No hay enlace original disponible para revisar el anuncio.");
-  }
-
-  return risks;
 }
 
 export function parseOpportunityFilters(params: SearchParamsRecord): OpportunityFilters {
@@ -544,6 +521,19 @@ export function getOpportunityListingUrl(opportunity: EvaluationResult): string 
   return /^https?:\/\//i.test(rawUrl) ? rawUrl : null;
 }
 
+export function getOpportunityImageUrl(opportunity: EvaluationResult): string | null {
+  const candidateKeys = ["imageUrl", "image", "thumbnailUrl", "thumbnail", "pictureUrl", "photoUrl"] as const;
+
+  for (const key of candidateKeys) {
+    const value = opportunity.listingRaw.attributes[key];
+    if (typeof value === "string" && /^https?:\/\//i.test(value.trim())) {
+      return value.trim();
+    }
+  }
+
+  return null;
+}
+
 export function getOpportunityBrand(opportunity: EvaluationResult): string | null {
   return normalizeIdentityValue(opportunity.classification.brand, ["generic", "unknown-brand"]);
 }
@@ -608,7 +598,26 @@ export function getOpportunityActionLabel(decision: OpportunityDecisionFilter): 
   return OPPORTUNITY_DECISION_OPTIONS.find((option) => option.value === decision)?.label ?? humanizeToken(decision);
 }
 
-export function getOpportunityVisibilityLabel(visibilityLevel: OpportunityFilters["visibilityLevel"] | "primary_feed" | "secondary_feed" | "hidden"): string {
+export function getOpportunityActionDescription(decision: OpportunityDecisionFilter): string {
+  switch (decision) {
+    case "buy_now":
+      return "Se ve accionable ahora mismo y con urgencia alta.";
+    case "make_offer":
+      return "Tiene sentido negociar antes de comprometer la compra.";
+    case "watch":
+      return "Conviene seguirla, pero todavia no exige movimiento inmediato.";
+    case "restricted_watch":
+      return "Merece mirada manual, aunque no es una prioridad limpia.";
+    case "ignore":
+      return "No destaca como compra razonable con la informacion actual.";
+    default:
+      return "Requiere una revision manual adicional.";
+  }
+}
+
+export function getOpportunityVisibilityLabel(
+  visibilityLevel: OpportunityFilters["visibilityLevel"] | "primary_feed" | "secondary_feed" | "hidden",
+): string {
   return OPPORTUNITY_VISIBILITY_OPTIONS.find((option) => option.value === visibilityLevel)?.label ?? humanizeToken(visibilityLevel);
 }
 
@@ -757,11 +766,11 @@ export function buildOpportunityExplanation(opportunity: EvaluationResult): Oppo
   translatedNegativeReasons.forEach((risk) => addUniqueMessage(risks, risk));
 
   const actionDecision = getOpportunityActionDecision(opportunity);
-  const headline = getOpportunityActionHeadline(actionDecision);
+  const headline = getOpportunityActionLabel(actionDecision);
   const summaryParts = reasons.slice(0, 2);
   const summary =
     summaryParts.length > 0
-      ? `${summaryParts.join(" ")}${risks[0] ? ` A revisar: ${risks[0]}` : ""}`
+      ? `${summaryParts.join(" ")}${risks[0] ? ` Riesgo principal: ${risks[0]}` : ""}`
       : risks[0] ?? "No hay suficientes senales explicativas todavia.";
 
   return {
@@ -777,8 +786,125 @@ export function buildOpportunityShortSummary(opportunity: EvaluationResult): str
   return buildOpportunityExplanation(opportunity).shortSummary;
 }
 
+export function getOpportunityMarketReference(opportunity: EvaluationResult): number | null {
+  return opportunity.market.medianPrice > 0 ? opportunity.market.medianPrice : null;
+}
+
+export function getOpportunityEstimatedSavings(opportunity: EvaluationResult): number | null {
+  const reference = getOpportunityMarketReference(opportunity);
+  if (!reference) {
+    return null;
+  }
+
+  const savings = reference - getOpportunityTotalPrice(opportunity);
+  return Number.isFinite(savings) ? savings : null;
+}
+
 export function getOpportunityPriceContext(opportunity: EvaluationResult): string {
-  return `${formatCurrency(getOpportunityTotalPrice(opportunity), opportunity.listingRaw.currency)} total · ${formatPercent(
-    Math.max(0, getOpportunityDiscountRatio(opportunity)),
-  )} debajo de la mediana`;
+  const reference = getOpportunityMarketReference(opportunity);
+  if (!reference) {
+    return `${formatCurrency(getOpportunityTotalPrice(opportunity), opportunity.listingRaw.currency)} total`;
+  }
+
+  const savings = getOpportunityEstimatedSavings(opportunity) ?? 0;
+  const savingsLabel =
+    savings >= 0
+      ? `${formatCurrency(savings, opportunity.listingRaw.currency)} por debajo de referencia`
+      : `${formatCurrency(Math.abs(savings), opportunity.listingRaw.currency)} por encima de referencia`;
+
+  return `${formatCurrency(getOpportunityTotalPrice(opportunity), opportunity.listingRaw.currency)} total · ${savingsLabel}`;
+}
+
+export function getOpportunityRiskLevel(opportunity: EvaluationResult): OpportunityRiskLevel {
+  const riskPenalty = opportunity.scoring.riskPenalty + opportunity.scoring.confidencePenalty;
+  const specialType = getOpportunitySpecialItemType(opportunity);
+  const confidenceGap = opportunity.classification.confidence < opportunity.profile.minConfidence;
+  const sellerWeak = opportunity.listingRaw.sellerRating < 96 || !opportunity.listingRaw.returnsAccepted;
+  const specialRisky =
+    specialType === "for_parts_not_working" ||
+    specialType === "replacement_part_only" ||
+    specialType === "incomplete_item" ||
+    specialType === "mixed_lot" ||
+    specialType === "ambiguous_bundle";
+
+  if (riskPenalty >= 15 || specialRisky || opportunity.visibility.visibilityLevel === "hidden") {
+    return "high";
+  }
+
+  if (riskPenalty >= 8 || confidenceGap || sellerWeak || opportunity.visibility.visibilityLevel === "secondary_feed") {
+    return "medium";
+  }
+
+  return "low";
+}
+
+export function getOpportunityRiskLabel(level: OpportunityRiskLevel): string {
+  if (level === "low") {
+    return "Riesgo bajo";
+  }
+
+  if (level === "high") {
+    return "Riesgo alto";
+  }
+
+  return "Riesgo medio";
+}
+
+export function getOpportunityRiskSummary(opportunity: EvaluationResult): string {
+  const explanation = buildOpportunityExplanation(opportunity);
+  return explanation.risks[0] ?? "No aparecen senales fuertes de riesgo con los datos actuales.";
+}
+
+export function getOpportunityRecommendedOfferLabel(opportunity: EvaluationResult): string | null {
+  if (opportunity.offer.recommendedOffer === null || opportunity.offer.recommendedOffer === undefined) {
+    return null;
+  }
+
+  return formatCurrency(opportunity.offer.recommendedOffer, opportunity.listingRaw.currency);
+}
+
+export function getOpportunityMaxReasonablePriceLabel(opportunity: EvaluationResult): string | null {
+  if (opportunity.offer.walkAwayPrice === null || opportunity.offer.walkAwayPrice === undefined) {
+    return null;
+  }
+
+  return formatCurrency(opportunity.offer.walkAwayPrice, opportunity.listingRaw.currency);
+}
+
+export function getOpportunitySellerSummary(opportunity: EvaluationResult): string {
+  const parts = [opportunity.listingRaw.sellerName];
+
+  if (opportunity.listingRaw.sellerRating > 0) {
+    parts.push(`${opportunity.listingRaw.sellerRating}% reputacion`);
+  }
+
+  if (opportunity.listingRaw.sellerSalesCount > 0) {
+    parts.push(`${opportunity.listingRaw.sellerSalesCount} ventas`);
+  }
+
+  return parts.join(" · ");
+}
+
+export function getOpportunityPrimaryReasons(opportunity: EvaluationResult, limit = 3): string[] {
+  return buildOpportunityExplanation(opportunity).reasons.slice(0, limit);
+}
+
+export function getOpportunityWhatToDoNow(opportunity: EvaluationResult): string {
+  const decision = getOpportunityActionDecision(opportunity);
+  const recommendedOffer = getOpportunityRecommendedOfferLabel(opportunity);
+  const walkAwayPrice = getOpportunityMaxReasonablePriceLabel(opportunity);
+
+  if (decision === "buy_now") {
+    return walkAwayPrice ? `Abrir eBay y comprar si sigue en ${walkAwayPrice} o menos.` : "Abrir eBay y revisar si sigue disponible.";
+  }
+
+  if (decision === "make_offer") {
+    return recommendedOffer ? `Abrir eBay y probar una oferta cerca de ${recommendedOffer}.` : "Abrir eBay y revisar margen para hacer oferta.";
+  }
+
+  if (decision === "watch" || decision === "restricted_watch") {
+    return "Seguirla de cerca y volver a revisar si cambia precio o estado.";
+  }
+
+  return "No mover ficha todavia; solo vale una revision manual si te interesa mucho.";
 }

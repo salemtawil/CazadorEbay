@@ -2,8 +2,15 @@
 
 import Link from "next/link";
 import { useTransition } from "react";
-import { buildProfileSummary, getProfileStatusDetail, getProfileStatusLabel } from "@/lib/profiles/presentation";
-import { formatBooleanState, formatCount, formatCurrency, formatText, humanizeToken } from "@/lib/formatting";
+import {
+  buildProfileSummary,
+  getProfileObjective,
+  getProfileObjectiveLabel,
+  getProfileStatusDetail,
+  getProfileStatusLabel,
+  getRiskToleranceLabel,
+} from "@/lib/profiles/presentation";
+import { formatBooleanState, formatCount, formatCurrency } from "@/lib/formatting";
 import type { SearchProfile } from "@/lib/modules/contracts";
 
 interface ProfileCardData {
@@ -34,6 +41,7 @@ export function ProfileCard({
 }) {
   const [isPending, startTransition] = useTransition();
   const { profile, evaluations, visible } = item;
+  const objective = getProfileObjective(profile);
 
   function runAction(path: string) {
     startTransition(async () => {
@@ -59,56 +67,56 @@ export function ProfileCard({
 
       <div className="metric-strip">
         <div className="metric-chip">
-          <span className="metric-label">Evaluaciones</span>
+          <span className="metric-label">Coincidencias revisadas</span>
           <strong>{formatCount(evaluations)}</strong>
         </div>
         <div className="metric-chip">
-          <span className="metric-label">Visibles</span>
+          <span className="metric-label">Visibles ahora</span>
           <strong>{formatCount(visible)}</strong>
         </div>
         <div className="metric-chip">
-          <span className="metric-label">Budget</span>
+          <span className="metric-label">Presupuesto</span>
           <strong>{formatCurrency(profile.maxBudget)}</strong>
         </div>
       </div>
 
       <div className="field-grid">
         <div className="field-card">
-          <span className="field-label">Strategy mode</span>
-          <strong className="field-value">{humanizeToken(profile.strategyMode)}</strong>
+          <span className="field-label">Objetivo</span>
+          <strong className="field-value">{getProfileObjectiveLabel(objective)}</strong>
         </div>
         <div className="field-card">
-          <span className="field-label">Risk tolerance</span>
-          <strong className="field-value">{humanizeToken(profile.riskTolerance)}</strong>
+          <span className="field-label">Riesgo</span>
+          <strong className="field-value">{getRiskToleranceLabel(profile.riskTolerance)}</strong>
         </div>
         <div className="field-card">
-          <span className="field-label">Strict</span>
+          <span className="field-label">Busqueda estricta</span>
           <strong className="field-value">{formatBooleanState(profile.strictMode)}</strong>
         </div>
         <div className="field-card">
-          <span className="field-label">Min score</span>
-          <strong className="field-value">{formatText(profile.minScore)}</strong>
+          <span className="field-label">Minimo de prioridad</span>
+          <strong className="field-value">{profile.minScore}</strong>
         </div>
       </div>
 
       <div className="profile-flags">
-        <span className="chip">Parts/repairs: {formatBooleanState(profile.includePartsRepairs)}</span>
+        <span className="chip">Para reparar: {formatBooleanState(profile.includePartsRepairs)}</span>
         <span className="chip">Incompletos: {formatBooleanState(profile.includeIncompleteItems)}</span>
         <span className="chip">Accesorios: {formatBooleanState(profile.includeAccessories)}</span>
-        <span className="chip">Low confidence: {formatBooleanState(profile.showLowConfidenceItems)}</span>
+        <span className="chip">Coincidencias dudosas: {formatBooleanState(profile.showLowConfidenceItems)}</span>
       </div>
 
       <div className="section-stack">
         <div>
-          <p className="section-kicker">Busca</p>
+          <p className="section-kicker">Que estas cazando</p>
           <div className="chips">
-            {profile.keywords.length > 0 ? profile.keywords.map((term) => <span key={term} className="chip">{term}</span>) : <span className="chip">not set</span>}
+            {profile.keywords.length > 0 ? profile.keywords.map((term) => <span key={term} className="chip">{term}</span>) : <span className="chip">Sin terminos</span>}
           </div>
         </div>
         <div>
-          <p className="section-kicker">Excluye</p>
+          <p className="section-kicker">Que quieres evitar</p>
           <div className="chips">
-            {profile.blockedTerms.length > 0 ? profile.blockedTerms.map((term) => <span key={term} className="chip">{term}</span>) : <span className="chip">not set</span>}
+            {profile.blockedTerms.length > 0 ? profile.blockedTerms.map((term) => <span key={term} className="chip">{term}</span>) : <span className="chip">Sin exclusiones</span>}
           </div>
         </div>
       </div>
@@ -118,7 +126,7 @@ export function ProfileCard({
           Editar
         </button>
         <button type="button" disabled={isPending} onClick={() => runAction(`/api/profiles/${profile.id}/toggle`)}>
-          {profile.status === "active" ? "Desactivar" : "Activar"}
+          {profile.status === "active" ? "Pausar" : "Activar"}
         </button>
         <button type="button" disabled={isPending} onClick={() => runAction(`/api/profiles/${profile.id}/duplicate`)}>
           Duplicar

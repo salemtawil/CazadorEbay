@@ -361,14 +361,14 @@ export function buildProfilePreview(profile: Partial<ProfileDraft | SearchProfil
 
 export function getProfileObjectiveLabel(objective: ProfileObjective): string {
   if (objective === "buyer") {
-    return "comprador";
+    return "comprar para usar";
   }
 
   if (objective === "reseller") {
     return "reventa";
   }
 
-  return "exploracion";
+  return "explorar";
 }
 
 export function getRiskToleranceLabel(value: RiskTolerance): string {
@@ -384,11 +384,11 @@ export function getRiskToleranceLabel(value: RiskTolerance): string {
 }
 
 export function getProfileStatusLabel(status: SearchProfileStatus): string {
-  return status === "active" ? "Activo" : "Inactivo";
+  return status === "active" ? "Activa" : "Pausada";
 }
 
 export function getProfileStatusDetail(status: SearchProfileStatus): string {
-  return status === "active" ? "Recibiendo evaluaciones nuevas." : `Estado actual: ${humanizeToken(status)}.`;
+  return status === "active" ? "Recibiendo oportunidades nuevas." : `Estado actual: ${humanizeToken(status)}.`;
 }
 
 export function buildAdvancedProfileNotes(profile: Partial<ProfileDraft | SearchProfile>): string[] {

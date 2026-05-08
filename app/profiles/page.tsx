@@ -26,8 +26,8 @@ export default async function ProfilesPage() {
 
   return (
     <SectionCard
-      title="Perfiles"
-      subtitle="Centro de trabajo para entender rapidamente que busca cada perfil y editarlo con una capa mas humana."
+      title="Mis busquedas"
+      subtitle="Gestiona que estas cazando, como lo estas buscando y con que nivel de exigencia."
     >
       <ProfilesWorkspace items={items} />
     </SectionCard>

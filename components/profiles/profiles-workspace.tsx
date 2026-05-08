@@ -34,15 +34,15 @@ export function ProfilesWorkspace({
     <div className="profiles-workspace">
       <div className="profiles-toolbar">
         <div>
-          <p className="eyebrow">Perfiles utiles</p>
-          <h3 className="panel-title">Entiende, crea y ajusta perfiles sin caer en un panel tecnico</h3>
+          <p className="eyebrow">Mis busquedas</p>
+          <h3 className="panel-title">Crea estrategias faciles de entender, no configuraciones internas</h3>
           <p className="muted compact-text">
             La vista simple queda por defecto. El modo avanzado sigue disponible para revisar thresholds y campos crudos.
           </p>
         </div>
         <div className="cta-row">
           <button type="button" onClick={() => setEditingProfile(createProfileDraft())}>
-            Crear perfil
+            Nueva busqueda
           </button>
         </div>
       </div>
@@ -63,7 +63,7 @@ export function ProfilesWorkspace({
         </div>
       ) : (
         <div className="empty-state">
-          <p className="m-0">No hay perfiles cargados todavia. Crea uno nuevo con un preset o desde cero.</p>
+          <p className="m-0">No hay busquedas cargadas todavia. Crea una nueva con un preset o desde cero.</p>
         </div>
       )}
     </div>

@@ -23,14 +23,17 @@ export default async function AlertsPage({
     .sort((left, right) => left.label.localeCompare(right.label));
 
   return (
-    <SectionCard title="Alertas" subtitle="Cambios recientes en oportunidades persistidas.">
+    <SectionCard
+      title="Cambios"
+      subtitle="Eventos que realmente pueden cambiar que revisas, compras o negocias."
+    >
       <AlertsFiltersForm
         filters={filters}
         profileOptions={profileOptions}
         resultCount={alerts.length}
         totalCount={allAlerts.length}
       />
-      <AlertsList alerts={alerts} emptyMessage="No hay alertas para los filtros actuales." />
+      <AlertsList alerts={alerts} emptyMessage="No hay cambios para los filtros actuales." />
     </SectionCard>
   );
 }

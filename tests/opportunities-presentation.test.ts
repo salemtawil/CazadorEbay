@@ -110,8 +110,8 @@ describe("opportunities presentation", () => {
 
     const explanation = buildOpportunityExplanation(opportunity);
 
-    expect(explanation.reasons).toContain("Esta por debajo del precio habitual del mercado.");
-    expect(explanation.reasons).toContain("La decision actual sugiere comprar ahora.");
+    expect(explanation.reasons).toContain("El precio total esta por debajo de lo normal para este tipo de producto.");
+    expect(explanation.reasons).toContain("La app ve una ventana clara para comprar antes de que se vaya.");
     expect(explanation.shortSummary.length).toBeGreaterThan(10);
   });
 });

@@ -42,7 +42,7 @@ function parseNumberInput(value: string): number | undefined {
 }
 
 function buildFormTitle(draft: ProfileDraft): string {
-  return draft.id ? `Editar ${draft.name || "perfil"}` : "Crear perfil";
+  return draft.id ? `Editar ${draft.name || "busqueda"}` : "Crear busqueda";
 }
 
 export function ProfileEditor({
@@ -99,7 +99,7 @@ export function ProfileEditor({
           <p className="eyebrow">Editor</p>
           <h3 className="panel-title">{buildFormTitle(draft)}</h3>
           <p className="muted compact-text">
-            Modo {mode === "simple" ? "simple" : "avanzado"} para configurar terminos, riesgo y filtros sin tocar el dominio.
+            Modo {mode === "simple" ? "simple" : "avanzado"} para definir que quieres encontrar y con cuanta exigencia.
           </p>
         </div>
         <div className="mode-toggle">
@@ -141,7 +141,7 @@ export function ProfileEditor({
                     type="text"
                     value={draft.name}
                     onChange={(event) => updateDraft({ name: event.target.value })}
-                    placeholder="Ej. RAM desktop DDR4"
+                    placeholder="Ej. Nintendo Switch OLED"
                   />
                 </label>
 
@@ -152,7 +152,7 @@ export function ProfileEditor({
                     type="text"
                     value={draft.categoryHint}
                     onChange={(event) => updateDraft({ categoryHint: event.target.value })}
-                    placeholder="Ej. desktop-memory"
+                    placeholder="Ej. gaming-handhelds"
                   />
                 </label>
 
@@ -163,9 +163,9 @@ export function ProfileEditor({
                     value={draft.objective}
                     onChange={(event) => updateDraft({ objective: event.target.value as ProfileDraft["objective"] })}
                   >
-                    <option value="buyer">buyer</option>
-                    <option value="reseller">reseller</option>
-                    <option value="explorer">explorer</option>
+                    <option value="buyer">comprar para usar</option>
+                    <option value="reseller">reventa</option>
+                    <option value="explorer">explorar</option>
                   </select>
                 </label>
 
@@ -176,9 +176,9 @@ export function ProfileEditor({
                     value={draft.riskTolerance}
                     onChange={(event) => updateDraft({ riskTolerance: event.target.value as ProfileDraft["riskTolerance"] })}
                   >
-                    <option value="low">low</option>
-                    <option value="medium">medium</option>
-                    <option value="high">high</option>
+                    <option value="low">bajo</option>
+                    <option value="medium">medio</option>
+                    <option value="high">alto</option>
                   </select>
                 </label>
               </div>
@@ -202,7 +202,7 @@ export function ProfileEditor({
             </section>
 
             <section className="field-card field-card-wide">
-              <p className="section-kicker">Como quieres comprar</p>
+              <p className="section-kicker">Como quieres cazar</p>
               <div className="toggle-grid">
                 <label className="toggle-card">
                   <input
@@ -210,7 +210,7 @@ export function ProfileEditor({
                     checked={draft.strictMode}
                     onChange={(event) => updateDraft({ strictMode: event.target.checked })}
                   />
-                  <span>Filtrado estricto</span>
+                  <span>Quiero coincidencias mas limpias</span>
                 </label>
                 <label className="toggle-card">
                   <input
@@ -218,7 +218,7 @@ export function ProfileEditor({
                     checked={draft.includePartsRepairs}
                     onChange={(event) => updateDraft({ includePartsRepairs: event.target.checked })}
                   />
-                  <span>Incluir articulos para reparar</span>
+                  <span>Tambien mirar articulos para reparar</span>
                 </label>
                 <label className="toggle-card">
                   <input
@@ -226,7 +226,7 @@ export function ProfileEditor({
                     checked={draft.includeIncompleteItems}
                     onChange={(event) => updateDraft({ includeIncompleteItems: event.target.checked })}
                   />
-                  <span>Incluir incompletos</span>
+                  <span>Tambien mirar incompletos</span>
                 </label>
                 <label className="toggle-card">
                   <input
@@ -234,7 +234,7 @@ export function ProfileEditor({
                     checked={draft.includeAccessories}
                     onChange={(event) => updateDraft({ includeAccessories: event.target.checked })}
                   />
-                  <span>Incluir accesorios</span>
+                  <span>Tambien mirar accesorios</span>
                 </label>
                 <label className="toggle-card">
                   <input
@@ -264,7 +264,7 @@ export function ProfileEditor({
                 </label>
 
                 <label className="control-field">
-                  <span className="field-label">Score minimo</span>
+                    <span className="field-label">Prioridad minima</span>
                   <input
                     className="control-input"
                     type="number"
@@ -283,7 +283,7 @@ export function ProfileEditor({
                 <p className="section-kicker">Opciones avanzadas</p>
                 <div className="field-grid">
                   <label className="control-field">
-                    <span className="field-label">Strategy mode</span>
+                    <span className="field-label">Modo interno</span>
                     <select
                       className="control-input"
                       value={draft.strategyMode ?? ""}
@@ -298,21 +298,21 @@ export function ProfileEditor({
                   </label>
 
                   <label className="control-field">
-                    <span className="field-label">Status</span>
+                    <span className="field-label">Estado</span>
                     <select
                       className="control-input"
                       value={draft.status}
                       onChange={(event) => updateDraft({ status: event.target.value as ProfileDraft["status"] })}
                     >
-                      <option value="active">active</option>
-                      <option value="paused">paused</option>
-                      <option value="draft">draft</option>
-                      <option value="archived">archived</option>
+                      <option value="active">activa</option>
+                      <option value="paused">pausada</option>
+                      <option value="draft">borrador</option>
+                      <option value="archived">archivada</option>
                     </select>
                   </label>
 
                   <label className="control-field">
-                    <span className="field-label">Min confidence</span>
+                    <span className="field-label">Confianza minima</span>
                     <input
                       className="control-input"
                       type="number"
@@ -326,7 +326,7 @@ export function ProfileEditor({
                   </label>
 
                   <label className="control-field">
-                    <span className="field-label">Min resale margin pct</span>
+                    <span className="field-label">Margen minimo de reventa</span>
                     <input
                       className="control-input"
                       type="number"
@@ -339,7 +339,7 @@ export function ProfileEditor({
                   </label>
 
                   <label className="control-field control-field-wide">
-                    <span className="field-label">Target categories raw</span>
+                    <span className="field-label">Categorias objetivo</span>
                     <textarea
                       className="control-input control-textarea"
                       value={draft.targetCategories.join("\n")}
@@ -349,7 +349,7 @@ export function ProfileEditor({
                   </label>
 
                   <label className="control-field control-field-wide">
-                    <span className="field-label">Search terms raw</span>
+                    <span className="field-label">Terminos raw</span>
                     <textarea
                       className="control-input control-textarea"
                       value={serializeProfileTerms(draft.keywords)}
@@ -358,7 +358,7 @@ export function ProfileEditor({
                   </label>
 
                   <label className="control-field control-field-wide">
-                    <span className="field-label">Excluded terms raw</span>
+                    <span className="field-label">Exclusiones raw</span>
                     <textarea
                       className="control-input control-textarea"
                       value={serializeProfileTerms(draft.blockedTerms)}
@@ -387,7 +387,7 @@ export function ProfileEditor({
               <div className="chips">
                 <span className="chip">Objetivo: {getProfileObjectiveLabel(draft.objective)}</span>
                 <span className="chip">Riesgo: {getRiskToleranceLabel(draft.riskTolerance)}</span>
-                <span className="chip">Strategy: {draft.strategyMode ?? "not set"}</span>
+                <span className="chip">Modo interno: {draft.strategyMode ?? "not set"}</span>
               </div>
             </div>
 
@@ -410,7 +410,7 @@ export function ProfileEditor({
 
         <div className="cta-row">
           <button type="submit" disabled={isPending}>
-            {isPending ? "Guardando..." : draft.id ? "Guardar cambios" : "Crear perfil"}
+            {isPending ? "Guardando..." : draft.id ? "Guardar cambios" : "Crear busqueda"}
           </button>
           <button type="button" disabled={isPending} onClick={onCancel}>
             Cancelar
