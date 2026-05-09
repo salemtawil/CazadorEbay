@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { SavedToggleButton } from "@/components/saved-toggle-button";
 import { formatCurrency, formatDateTime } from "@/lib/formatting";
 import {
   getOpportunityActionDecision,
@@ -154,9 +155,7 @@ export function OpportunityCard({
           ) : (
             <span className="button-link button-link-disabled">Anuncio no disponible</span>
           )}
-          <button type="button" className="button-ghost" disabled title="Preparado para una accion de guardado futura">
-            Guardar
-          </button>
+          <SavedToggleButton opportunityId={opportunity.id} className="button-ghost" />
         </div>
       </div>
     </article>

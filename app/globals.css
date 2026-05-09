@@ -256,6 +256,89 @@ ul {
   grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
 }
 
+.discovery-layout {
+  display: grid;
+  gap: 24px;
+  grid-template-columns: minmax(290px, 360px) minmax(0, 1fr);
+  align-items: start;
+}
+
+.discovery-sidebar,
+.discovery-main {
+  display: grid;
+  gap: 18px;
+}
+
+.discovery-sidebar {
+  position: sticky;
+  top: 20px;
+}
+
+.discovery-panel {
+  display: grid;
+  gap: 18px;
+  padding: 22px;
+  border-radius: 28px;
+  border: 1px solid var(--border-default);
+  background:
+    radial-gradient(circle at top left, rgba(124, 45, 18, 0.07), transparent 28%),
+    linear-gradient(180deg, var(--surface-panel-start), var(--surface-panel-end));
+  box-shadow: var(--shadow-card);
+}
+
+.discovery-panel-muted {
+  background:
+    radial-gradient(circle at top right, rgba(14, 165, 233, 0.08), transparent 26%),
+    linear-gradient(180deg, var(--surface-panel-start), var(--surface-panel-end));
+}
+
+.filter-stack {
+  display: grid;
+  gap: 14px;
+}
+
+.segmented-control {
+  display: grid;
+  gap: 8px;
+  grid-template-columns: repeat(4, 1fr);
+}
+
+.segmented-control-button,
+.tab-button,
+.chip-button {
+  border-radius: 999px;
+  background: var(--surface-elevated);
+}
+
+.segmented-control-button.is-active,
+.tab-button.is-active {
+  background: var(--text-primary);
+  color: var(--surface-base);
+  border-color: var(--text-primary);
+}
+
+.chip-button {
+  padding: 8px 12px;
+  border: 1px solid var(--border-default);
+  font-size: 13px;
+}
+
+.activity-summary-grid {
+  display: grid;
+  gap: 12px;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+}
+
+.stat-card-inline {
+  min-height: 0;
+}
+
+.tab-row {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
 .list {
   display: grid;
   gap: 14px;
@@ -594,6 +677,10 @@ button:focus-visible,
   color: var(--text-secondary);
 }
 
+.empty-state-large {
+  padding: 24px;
+}
+
 .list-block {
   display: grid;
   gap: 10px;
@@ -873,7 +960,7 @@ button:focus-visible,
 }
 
 .reason-line::before {
-  content: "• ";
+  content: "* ";
   color: var(--accent);
 }
 
@@ -1011,6 +1098,19 @@ button:focus-visible,
 }
 
 @media (max-width: 860px) {
+  .discovery-layout,
+  .profile-editor-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .discovery-sidebar {
+    position: static;
+  }
+
+  .segmented-control {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
   .detail-grid {
     grid-template-columns: 1fr;
   }
@@ -1050,10 +1150,6 @@ button:focus-visible,
 
   .theme-toggle {
     justify-items: start;
-  }
-
-  .profile-editor-layout {
-    grid-template-columns: 1fr;
   }
 
   .profile-preview,

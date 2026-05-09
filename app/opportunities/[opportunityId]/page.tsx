@@ -1,4 +1,5 @@
 import { notFound } from "next/navigation";
+import { SavedToggleButton } from "@/components/saved-toggle-button";
 import { SectionCard } from "@/components/ui/section-card";
 import { formatBooleanState, formatCount, formatCurrency, formatDateTime, formatPercent, formatText, humanizeToken } from "@/lib/formatting";
 import {
@@ -114,6 +115,7 @@ export default async function OpportunityDetailPage({
             ) : (
               <span className="button-link button-link-disabled">Anuncio original no disponible</span>
             )}
+            <SavedToggleButton opportunityId={opportunity.id} className="button-ghost" />
           </div>
         </div>
       </SectionCard>

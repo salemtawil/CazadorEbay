@@ -24,8 +24,8 @@ export default async function AlertsPage({
 
   return (
     <SectionCard
-      title="Cambios"
-      subtitle="Eventos que realmente pueden cambiar que revisas, compras o negocias."
+      title="Actividad"
+      subtitle="Novedades utiles que pueden cambiar que revisas, compras o negocias."
     >
       <AlertsFiltersForm
         filters={filters}

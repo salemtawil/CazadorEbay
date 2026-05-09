@@ -1,12 +1,25 @@
 import { ProfilesWorkspace } from "@/components/profiles/profiles-workspace";
 import { SectionCard } from "@/components/ui/section-card";
+import { createProfileDraft, normalizeProfileTerms } from "@/lib/profiles/presentation";
 import { opportunityService } from "@/lib/server/opportunity-service";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-export default async function ProfilesPage() {
-  const [profiles, evaluations] = await Promise.all([opportunityService.listProfiles(), opportunityService.listEvaluations()]);
+function readSingleValue(value: string | string[] | undefined): string {
+  return Array.isArray(value) ? value[0] ?? "" : value ?? "";
+}
+
+export default async function ProfilesPage({
+  searchParams,
+}: {
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
+}) {
+  const [profiles, evaluations, rawSearchParams] = await Promise.all([
+    opportunityService.listProfiles(),
+    opportunityService.listEvaluations(),
+    searchParams,
+  ]);
   const totalsByProfile = new Map<string, { evaluations: number; visible: number }>();
 
   for (const evaluation of evaluations) {
@@ -23,13 +36,27 @@ export default async function ProfilesPage() {
     evaluations: totalsByProfile.get(profile.id)?.evaluations ?? 0,
     visible: totalsByProfile.get(profile.id)?.visible ?? 0,
   }));
+  const query = readSingleValue(rawSearchParams.q).trim();
+  const exclude = readSingleValue(rawSearchParams.exclude).trim();
+  const budget = readSingleValue(rawSearchParams.budget).trim();
+  const risk = readSingleValue(rawSearchParams.risk).trim();
+  const initialDraft =
+    query || exclude || budget || risk
+      ? createProfileDraft({
+          name: query ? `Busqueda: ${query}` : "",
+          keywords: normalizeProfileTerms(query),
+          blockedTerms: normalizeProfileTerms(exclude),
+          maxBudget: budget ? Number(budget) : undefined,
+          riskTolerance: risk === "low" || risk === "medium" || risk === "high" ? risk : "medium",
+        })
+      : null;
 
   return (
     <SectionCard
       title="Mis busquedas"
       subtitle="Gestiona que estas cazando, como lo estas buscando y con que nivel de exigencia."
     >
-      <ProfilesWorkspace items={items} />
+      <ProfilesWorkspace items={items} initialDraft={initialDraft} />
     </SectionCard>
   );
 }

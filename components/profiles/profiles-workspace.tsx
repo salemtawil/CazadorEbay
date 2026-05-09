@@ -19,11 +19,13 @@ function buildDraftFromProfile(profile: SearchProfile): ProfileDraft {
 
 export function ProfilesWorkspace({
   items,
+  initialDraft = null,
 }: {
   items: ProfileListItem[];
+  initialDraft?: ProfileDraft | null;
 }) {
   const router = useRouter();
-  const [editingProfile, setEditingProfile] = useState<ProfileDraft | null>(null);
+  const [editingProfile, setEditingProfile] = useState<ProfileDraft | null>(initialDraft);
 
   function refreshView() {
     setEditingProfile(null);

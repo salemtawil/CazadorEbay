@@ -29,8 +29,8 @@ export default async function OpportunitiesPage({
 
   return (
     <SectionCard
-      title="Oportunidades"
-      subtitle="La pantalla principal para decidir rapido que comprar, por que conviene y que hacer ahora."
+      title="Ofertas"
+      subtitle="La pantalla principal para revisar rapido que comprar, por que conviene y que hacer ahora."
     >
       <OpportunityFiltersForm
         filters={filters}

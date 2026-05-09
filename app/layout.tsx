@@ -30,13 +30,14 @@ export default function RootLayout({ children }: Readonly<{ children: ReactNode 
               </p>
               <div className="toolbar">
                 <nav className="nav">
-                  <Link href="/">Hoy</Link>
-                  <Link href="/opportunities">Oportunidades</Link>
-                  <Link href="/alerts">Cambios</Link>
+                  <Link href="/">Inicio</Link>
+                  <Link href="/opportunities">Ofertas</Link>
                   <Link href="/profiles">Mis busquedas</Link>
+                  <Link href={"/saved" as Route}>Guardadas</Link>
                 </nav>
                 <div className="toolbar-side">
                   <nav className="nav nav-secondary">
+                    <Link href={"/alerts" as Route}>Actividad</Link>
                     <Link href={"/system" as Route}>Panel tecnico</Link>
                   </nav>
                   <ThemeToggle />
