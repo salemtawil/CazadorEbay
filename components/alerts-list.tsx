@@ -1,8 +1,10 @@
 "use client";
 
 import Link from "next/link";
+import type { Route } from "next";
 import { useRouter } from "next/navigation";
 import { useTransition } from "react";
+import { formatDateTime } from "@/lib/formatting";
 import {
   getAlertHeadline,
   getAlertImportanceSummary,
@@ -78,6 +80,7 @@ export function AlertsList({
     <div className="list">
       {alerts.map((alert) => {
         const alertState = getAlertState(alert);
+        const opportunityHref = `/opportunities/${encodeURIComponent(getAlertOpportunityId(alert))}` as Route;
 
         return (
           <article key={alert.id} className="alert-card">
@@ -90,7 +93,7 @@ export function AlertsList({
                   <span className={`status-pill ${getStateToneClass(alert)}`}>{getAlertStateLabel(alertState)}</span>
                   <span className="chip">{getAlertTypeLabel(alert.alertType)}</span>
                 </div>
-                <p className="muted compact-text">{new Date(alert.createdAt).toLocaleString("es-VE")}</p>
+                <p className="muted compact-text">{formatDateTime(alert.createdAt)}</p>
               </div>
 
               <h3 className="alert-card-title">{getAlertHeadline(alert)}</h3>
@@ -113,10 +116,7 @@ export function AlertsList({
 
             <div className="actions-grid">
               <Link
-                href={{
-                  pathname: "/opportunities/[opportunityId]",
-                  query: { opportunityId: getAlertOpportunityId(alert) },
-                }}
+                href={opportunityHref}
                 className="button-link"
               >
                 Ver oportunidad

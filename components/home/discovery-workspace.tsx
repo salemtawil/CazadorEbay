@@ -3,14 +3,12 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { OpportunityCard } from "@/components/opportunity-card";
-import type { InternalAlert, SearchProfile, EvaluationResult } from "@/lib/modules/contracts";
+import type { InternalAlert, EvaluationResult } from "@/lib/modules/contracts";
 import { getOpportunityActionDecision, getOpportunityRiskLevel } from "@/lib/opportunities/presentation";
 import { readSavedOpportunityIds, SAVED_OPPORTUNITIES_EVENT } from "@/lib/saved-opportunities";
 
 type RiskFilter = "all" | "low" | "medium" | "high";
 type OfferTab = "best" | "new" | "dropped" | "saved";
-
-const QUICK_CATEGORIES = ["RAM", "GPU", "iPhone", "Nintendo Switch", "Relojes", "Camaras"];
 
 function matchesText(value: string, query: string): boolean {
   return value.toLowerCase().includes(query.trim().toLowerCase());
@@ -45,11 +43,9 @@ function getActivityIds(alerts: InternalAlert[], types: InternalAlert["alertType
 export function DiscoveryWorkspace({
   opportunities,
   alerts,
-  profiles,
 }: {
   opportunities: EvaluationResult[];
   alerts: InternalAlert[];
-  profiles: SearchProfile[];
 }) {
   const [query, setQuery] = useState("");
   const [exclude, setExclude] = useState("");
@@ -115,7 +111,6 @@ export function DiscoveryWorkspace({
     });
   }
 
-  const activeProfiles = profiles.filter((profile) => profile.status === "active");
   const strongCount = opportunities.filter((opportunity) => getOpportunityActionDecision(opportunity) === "buy_now").length;
   const saveSearchHref = {
     pathname: "/profiles",
@@ -131,7 +126,6 @@ export function DiscoveryWorkspace({
     <section className="discovery-layout">
       <aside className="discovery-sidebar">
         <div className="discovery-panel">
-          <p className="eyebrow">Inicio</p>
           <h2 className="section-card-title">Que quieres encontrar hoy?</h2>
           <p className="section-card-subtitle">
             Describe lo que quieres cazar y deja que la app te muestre las ofertas que merecen atencion.
@@ -195,37 +189,11 @@ export function DiscoveryWorkspace({
             </div>
           </div>
 
-          <div>
-            <p className="section-kicker">Accesos rapidos</p>
-            <div className="chips">
-              {QUICK_CATEGORIES.map((category) => (
-                <button key={category} type="button" className="chip-button" onClick={() => setQuery(category)}>
-                  {category}
-                </button>
-              ))}
-            </div>
-          </div>
-
           <div className="cta-row">
             <button type="button">Buscar ofertas</button>
             <Link href={saveSearchHref} className="button-link button-link-secondary">
               Guardar busqueda
             </Link>
-          </div>
-        </div>
-
-        <div className="discovery-panel discovery-panel-muted">
-          <p className="section-kicker">Busquedas activas</p>
-          <div className="list">
-            {activeProfiles.slice(0, 4).map((profile) => (
-              <article key={profile.id} className="mini-search-card">
-                <h3 className="mini-card-title">{profile.name}</h3>
-                <p className="compact-text">{profile.description || "Busqueda activa lista para seguir encontrando."}</p>
-                <Link href={{ pathname: "/opportunities", query: { profile: profile.id } }} className="button-link button-link-secondary">
-                  Abrir ofertas
-                </Link>
-              </article>
-            ))}
           </div>
         </div>
       </aside>
@@ -234,7 +202,6 @@ export function DiscoveryWorkspace({
         <div className="discovery-panel">
           <div className="split-row row-start">
             <div>
-              <p className="eyebrow">Ofertas</p>
               <h2 className="section-card-title">Ofertas que valen la pena</h2>
               <p className="section-card-subtitle">Empieza por las mejores y cambia de vista cuando quieras ver novedades o bajadas.</p>
             </div>

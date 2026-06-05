@@ -6,11 +6,10 @@ export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 export default async function HomePage() {
-  const [opportunities, alerts, profiles] = await Promise.all([
+  const [opportunities, alerts] = await Promise.all([
     opportunityService.listOpportunities(),
     alertService.listAlerts({ includeDismissed: false, take: 40 }),
-    opportunityService.listProfiles(),
   ]);
 
-  return <DiscoveryWorkspace opportunities={opportunities} alerts={alerts} profiles={profiles} />;
+  return <DiscoveryWorkspace opportunities={opportunities} alerts={alerts} />;
 }

@@ -48,7 +48,7 @@ CRON_SECRET=""
 
 - En Supabase conviene usar el pooler (`6543`) para runtime serverless.
 - Prisma necesita ademas `DIRECT_URL` porque las migraciones no deben ir por PgBouncer.
-- `postinstall`, `build` y `vercel-build` ejecutan `prisma generate`, lo que evita fallos comunes en Vercel cuando el cliente Prisma no esta generado.
+- `postinstall` ejecuta `prisma generate`, lo que evita fallos comunes en Vercel cuando el cliente Prisma no esta generado y evita regeneraciones innecesarias durante `build` en Windows.
 - La app no depende implicitamente de fixtures en produccion. Si `USE_FIXTURE_DATA=false`, o si el runtime es productivo, el catalogo se carga desde Prisma.
 - La integración de eBay usa Browse API `item_summary/search` y OAuth client credentials con credenciales del Developer Program.
 
@@ -139,7 +139,7 @@ npm run prisma:migrate:deploy
 npm run vercel-build
 ```
 
-7. Despliega. El build ya corre `prisma generate && next build`.
+7. Despliega. El cliente Prisma se genera en `postinstall` y luego el build corre `next build`.
 
 ## Conectar Supabase
 

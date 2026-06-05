@@ -258,8 +258,8 @@ ul {
 
 .discovery-layout {
   display: grid;
-  gap: 24px;
-  grid-template-columns: minmax(290px, 360px) minmax(0, 1fr);
+  gap: 20px;
+  grid-template-columns: minmax(280px, 320px) minmax(0, 1fr);
   align-items: start;
 }
 
@@ -276,20 +276,16 @@ ul {
 
 .discovery-panel {
   display: grid;
-  gap: 18px;
-  padding: 22px;
-  border-radius: 28px;
-  border: 1px solid var(--border-default);
-  background:
-    radial-gradient(circle at top left, rgba(124, 45, 18, 0.07), transparent 28%),
-    linear-gradient(180deg, var(--surface-panel-start), var(--surface-panel-end));
-  box-shadow: var(--shadow-card);
+  gap: 16px;
+  padding: 18px;
+  border-radius: 24px;
+  background: rgba(255, 255, 255, 0.58);
+  box-shadow: var(--shadow-soft);
+  backdrop-filter: blur(10px);
 }
 
 .discovery-panel-muted {
-  background:
-    radial-gradient(circle at top right, rgba(14, 165, 233, 0.08), transparent 26%),
-    linear-gradient(180deg, var(--surface-panel-start), var(--surface-panel-end));
+  background: rgba(255, 255, 255, 0.4);
 }
 
 .filter-stack {
@@ -317,15 +313,9 @@ ul {
   border-color: var(--text-primary);
 }
 
-.chip-button {
-  padding: 8px 12px;
-  border: 1px solid var(--border-default);
-  font-size: 13px;
-}
-
 .activity-summary-grid {
   display: grid;
-  gap: 12px;
+  gap: 10px;
   grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
 }
 
@@ -521,8 +511,6 @@ ul {
   display: block;
   margin-bottom: 6px;
   font-size: 12px;
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
   color: var(--text-muted);
 }
 
@@ -548,8 +536,6 @@ ul {
 
 .field-label {
   font-size: 12px;
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
   color: var(--text-muted);
 }
 
@@ -567,8 +553,6 @@ ul {
 .section-kicker {
   margin: 0 0 10px;
   font-size: 12px;
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
   color: var(--accent);
 }
 
@@ -884,11 +868,10 @@ button:focus-visible,
 .opportunity-card,
 .alert-card {
   display: grid;
-  gap: 18px;
-  grid-template-columns: minmax(0, 1fr) minmax(250px, 290px);
-  padding: 20px;
-  border: 1px solid var(--border-default);
-  border-radius: 24px;
+  gap: 14px;
+  grid-template-columns: minmax(0, 1fr) auto;
+  padding: 18px;
+  border-radius: 22px;
   background: linear-gradient(180deg, var(--surface-panel-start), var(--surface-panel-end));
   box-shadow: var(--shadow-soft);
 }
@@ -901,24 +884,23 @@ button:focus-visible,
 }
 
 .opportunity-card-side {
-  display: grid;
-  gap: 12px;
-  align-content: start;
+  display: flex;
+  align-items: flex-start;
+  align-content: flex-start;
 }
 
 .opportunity-topline {
   display: grid;
-  gap: 14px;
-  grid-template-columns: 92px minmax(0, 1fr);
+  gap: 12px;
+  grid-template-columns: 84px minmax(0, 1fr);
   align-items: start;
 }
 
 .opportunity-thumb {
-  width: 92px;
-  height: 92px;
+  width: 84px;
+  height: 84px;
   object-fit: cover;
-  border-radius: 20px;
-  border: 1px solid var(--border-default);
+  border-radius: 18px;
   background: var(--surface-muted);
 }
 
@@ -931,26 +913,17 @@ button:focus-visible,
   text-transform: uppercase;
 }
 
-.opportunity-why-grid {
-  display: grid;
-  gap: 14px;
-  grid-template-columns: minmax(0, 1.1fr) minmax(220px, 0.9fr);
-}
-
-.opportunity-why-block,
-.opportunity-risk-block,
 .helper-panel,
 .mini-change-card,
 .mini-search-card {
-  border-radius: 20px;
-  border: 1px solid var(--border-default);
+  border-radius: 18px;
   background: var(--surface-elevated);
   padding: 14px;
 }
 
 .reason-list {
   display: grid;
-  gap: 8px;
+  gap: 6px;
 }
 
 .reason-line {
@@ -964,13 +937,27 @@ button:focus-visible,
   color: var(--accent);
 }
 
-.metric-chip-strong {
-  background: linear-gradient(180deg, rgba(124, 45, 18, 0.08), var(--surface-elevated));
-}
-
 .mini-card-title {
   margin: 0;
   font-size: 1.05rem;
+}
+
+.opportunity-price {
+  margin: 0;
+  font-size: 1.3rem;
+  font-weight: 700;
+  letter-spacing: -0.03em;
+}
+
+.opportunity-savings {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 600;
+  color: #15803d;
+}
+
+.opportunity-actions {
+  justify-content: flex-end;
 }
 
 .helper-text {
@@ -1013,7 +1000,6 @@ button:focus-visible,
 
 .section-card {
   border-radius: 28px;
-  border: 1px solid var(--border-default);
   background:
     radial-gradient(circle at top right, rgba(124, 45, 18, 0.05), transparent 30%),
     var(--surface-base);
@@ -1038,11 +1024,10 @@ button:focus-visible,
 
 .stat-card {
   border-radius: 24px;
-  border: 1px solid var(--border-default);
   background:
     linear-gradient(180deg, var(--surface-panel-start), var(--surface-panel-end));
-  padding: 20px;
-  box-shadow: var(--shadow-card);
+  padding: 18px;
+  box-shadow: var(--shadow-soft);
 }
 
 .stat-card-label {
@@ -1122,8 +1107,8 @@ button:focus-visible,
 
   .opportunity-thumb {
     width: 100%;
-    max-width: 120px;
-    height: 120px;
+    max-width: 104px;
+    height: 104px;
   }
 
   .results-toolbar {

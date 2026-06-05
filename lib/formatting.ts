@@ -1,3 +1,6 @@
+const STABLE_LOCALE = "es-VE";
+const STABLE_TIME_ZONE = "America/Caracas";
+
 export function humanizeToken(value: string | null | undefined): string {
   if (!value) {
     return "not set";
@@ -27,9 +30,10 @@ export function formatDateTime(value: string | null | undefined): string {
     return "not set";
   }
 
-  return new Intl.DateTimeFormat("es-VE", {
+  return new Intl.DateTimeFormat(STABLE_LOCALE, {
     dateStyle: "medium",
     timeStyle: "short",
+    timeZone: STABLE_TIME_ZONE,
   }).format(new Date(value));
 }
 
